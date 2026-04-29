@@ -1,0 +1,40 @@
+aws_region           = "ap-northeast-2"
+project_name         = "fintech-security-platform"
+environment          = "audit"
+owner                = "security-team"
+vpc_name             = "fin-audit-vpc"
+vpc_cidr             = "10.10.0.0/16"
+enable_dns_support   = true
+enable_dns_hostnames = true
+
+bastion_subnet_2a_cidr = "10.10.10.0/24"
+bastion_subnet_2c_cidr = "10.10.11.0/24"
+tgw_subnet_2a_cidr     = "10.10.100.0/24"
+tgw_subnet_2c_cidr     = "10.10.101.0/24"
+
+kms_key_name        = "fin-s3-cmk"
+kms_key_alias       = "alias/fin-s3-cmk"
+kms_deletion_window = 7
+
+log_bucket_suffix              = "your-unique-suffix"
+soc_audit_log_bucket_name      = "fin-soc-audit-log"
+soc_compliance_bucket_name     = "fin-soc-compliance"
+soc_athena_results_bucket_name = "fin-soc-athena-results"
+
+bastion_instance_type = "t3.micro"
+bastion_key_pair_name = ""
+
+enable_guardduty   = false
+enable_securityhub = false
+
+transit_gateway_id             = ""
+prod_vpc_peering_connection_id = ""
+dev_vpc_peering_connection_id  = ""
+prod_account_id                = ""
+dev_account_id                 = ""
+
+athena_database_name  = "fin_soc_logs"
+athena_workgroup_name = "fin-soc-athena-wg"
+
+audit_notification_email          = ""
+monthly_audit_schedule_expression = "cron(0 0 1 * ? *)"
