@@ -108,13 +108,13 @@ resource "aws_security_group" "eks_node" {
 # ────────────────────────────────────────────
 # 3. RDS 보안 그룹
 # ────────────────────────────────────────────
-# 가장 안쪽 계층. PostgreSQL 포트(5432)만,
+# 가장 안쪽 계층. MySQL 포트(3306)만,
 # EKS 노드에서만 접근 가능.
 # 인터넷, ALB, 심지어 Public 서브넷에서도 직접 접근 불가!
 
 resource "aws_security_group" "rds" {
   name        = "fin-dev-rds-sg"
-  description = "RDS - PostgreSQL access from EKS nodes only"
+  description = "RDS - MySQL access from EKS nodes only"
   vpc_id      = aws_vpc.dev.id
 
   # 인바운드: EKS 노드에서 MySQL 접근
