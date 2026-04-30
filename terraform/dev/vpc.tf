@@ -90,7 +90,7 @@ resource "aws_subnet" "dev_pri_2c" {
 }
 
 # === DB 서브넷 (파란색 — RDS만 들어감) ===
-# 가장 안쪽 계층. EKS 노드에서만 5432 포트로 접근 가능.
+# 가장 안쪽 계층. EKS 노드에서만 3306 포트로 접근 가능.
 # 인터넷은 물론, Public 서브넷에서도 직접 접근 불가.
 
 resource "aws_subnet" "dev_db_2a" {
