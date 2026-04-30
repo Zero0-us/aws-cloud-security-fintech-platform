@@ -1,0 +1,11 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfplan
+.terraform.lock.hcl
+
+# 민감 정보
+*.pem
+*.key
+.env
