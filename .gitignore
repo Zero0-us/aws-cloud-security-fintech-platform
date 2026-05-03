@@ -9,3 +9,21 @@
 *.pem
 *.key
 .env
+=======
+# Terraform local directory
+.terraform/
+
+# Local values and secrets
+*.tfvars
+*.tfvars.json
+
+# Terraform state files
+*.tfstate
+*.tfstate.*
+
+# Crash log files
+crash.log
+
+# OS specific files
+.DS_Store
+

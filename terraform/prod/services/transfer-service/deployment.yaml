@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: transfer-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: transfer
+  template:
+    metadata:
+      labels:
+        app: transfer
+    spec:
+      containers:
+      - name: transfer-service
+        image: 549027855245.dkr.ecr.ap-northeast-2.amazonaws.com/fin-prod-transfer:latest
+        ports:
+        - containerPort: 5000
+        resources:
+          limits:
+            memory: "128Mi"
+          requests:
+            memory: "64Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: transfer-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: transfer
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000
