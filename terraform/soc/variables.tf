@@ -58,14 +58,14 @@ variable "bastion_subnet_2c_cidr" {
   default     = "10.10.11.0/24"
 }
 
-variable "tgw_subnet_2a_cidr" {
-  description = "CIDR block for TGW subnet in 2a"
+variable "peering_subnet_2a_cidr" {
+  description = "CIDR block for peering subnet in 2a"
   type        = string
   default     = "10.10.100.0/24"
 }
 
-variable "tgw_subnet_2c_cidr" {
-  description = "CIDR block for TGW subnet in 2c"
+variable "peering_subnet_2c_cidr" {
+  description = "CIDR block for peering subnet in 2c"
   type        = string
   default     = "10.10.101.0/24"
 }
@@ -103,13 +103,13 @@ variable "dev_log_bucket_name" {
 variable "stage_log_bucket_name" {
   description = "Staging log bucket name"
   type        = string
-  default     = "fin-stage-log-s3"
+  default     = "fin-stg-log-s3"
 }
 
 variable "soc_athena_results_bucket_name" {
   description = "SOC Athena query results bucket name"
   type        = string
-  default     = "fin-athena-results"
+  default     = "fin-athena-result-s3"
 }
 
 variable "bastion_instance_type" {
@@ -131,14 +131,8 @@ variable "bastion_allowed_ssh_cidrs" {
 }
 
 # ============================================================================
-# Transit Gateway (TGW) Variables
+# VPC Peering Variables
 # ============================================================================
-
-variable "transit_gateway_id" {
-  description = "Transit Gateway ID for cross-VPC communication"
-  type        = string
-  default     = ""
-}
 
 variable "prod_vpc_peering_connection_id" {
   description = "VPC peering connection ID from Audit/SOC VPC to Production VPC"

@@ -36,23 +36,23 @@ resource "aws_subnet" "bastion_subnet_2c" {
   }
 }
 
-resource "aws_subnet" "tgw_subnet_2a" {
+resource "aws_subnet" "peering_subnet_2a" {
   vpc_id            = aws_vpc.audit_vpc.id
-  cidr_block        = var.tgw_subnet_2a_cidr
+  cidr_block        = var.peering_subnet_2a_cidr
   availability_zone = "${var.aws_region}a"
 
   tags = {
-    Name = "fin-audit-tgw-sub-2a"
+    Name = "fin-audit-peering-sub-2a"
   }
 }
 
-resource "aws_subnet" "tgw_subnet_2c" {
+resource "aws_subnet" "peering_subnet_2c" {
   vpc_id            = aws_vpc.audit_vpc.id
-  cidr_block        = var.tgw_subnet_2c_cidr
+  cidr_block        = var.peering_subnet_2c_cidr
   availability_zone = "${var.aws_region}c"
 
   tags = {
-    Name = "fin-audit-tgw-sub-2c"
+    Name = "fin-audit-peering-sub-2c"
   }
 }
 
@@ -69,12 +69,6 @@ locals {
     var.dev_account_id,
     var.stage_account_id
   ])
-
-  workload_vpc_cidrs = [
-    var.prod_vpc_cidr,
-    var.dev_vpc_cidr,
-    var.stage_vpc_cidr
-  ]
 
   peering_routes = {
     for route in [
@@ -869,20 +863,11 @@ resource "aws_route_table" "bastion_rt" {
 }
 
 # ============================================================================
-# Route Table (TGW Subnet) - 다른 VPC로의 라우팅
+# Route Table (Peering Subnet) - 다른 VPC로의 라우팅
 # ============================================================================
 
-resource "aws_route_table" "tgw_rt" {
+resource "aws_route_table" "peering_rt" {
   vpc_id = aws_vpc.audit_vpc.id
-
-  dynamic "route" {
-    for_each = var.transit_gateway_id != "" ? local.workload_vpc_cidrs : []
-
-    content {
-      cidr_block         = route.value
-      transit_gateway_id = var.transit_gateway_id
-    }
-  }
 
   dynamic "route" {
     for_each = local.peering_routes
@@ -894,7 +879,7 @@ resource "aws_route_table" "tgw_rt" {
   }
 
   tags = {
-    Name = "fin-audit-tgw-rt"
+    Name = "fin-audit-peering-rt"
   }
 }
 
@@ -909,17 +894,17 @@ resource "aws_route_table_association" "bastion_2c_rta" {
 }
 
 # ============================================================================
-# Route Table Association for TGW Subnet
+# Route Table Association for Peering Subnet
 # ============================================================================
 
-resource "aws_route_table_association" "tgw_2a_rta" {
-  subnet_id      = aws_subnet.tgw_subnet_2a.id
-  route_table_id = aws_route_table.tgw_rt.id
+resource "aws_route_table_association" "peering_2a_rta" {
+  subnet_id      = aws_subnet.peering_subnet_2a.id
+  route_table_id = aws_route_table.peering_rt.id
 }
 
-resource "aws_route_table_association" "tgw_2c_rta" {
-  subnet_id      = aws_subnet.tgw_subnet_2c.id
-  route_table_id = aws_route_table.tgw_rt.id
+resource "aws_route_table_association" "peering_2c_rta" {
+  subnet_id      = aws_subnet.peering_subnet_2c.id
+  route_table_id = aws_route_table.peering_rt.id
 }
 
 # ============================================================================
