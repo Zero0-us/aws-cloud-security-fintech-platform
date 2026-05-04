@@ -18,3 +18,14 @@ output "private_subnet_ids" {
 output "db_subnet_ids" {
   value = aws_subnet.db[*].id
 }
+
+# VPC Peering 라우팅에 필요한 Route Table ID
+output "public_route_table_id" {
+  description = "퍼블릭 라우트 테이블 ID"
+  value       = aws_route_table.public.id
+}
+
+output "private_route_table_id" {
+  description = "프라이빗 라우트 테이블 ID"
+  value       = aws_route_table.private.id
+}

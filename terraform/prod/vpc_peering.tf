@@ -1,0 +1,43 @@
+# ============================================================
+# vpc_peering.tf — VPC 피어링 (Prod ↔ Security/Audit)
+# ============================================================
+# Prod VPC (10.20.0.0/16)
+#   ↔ 피어링 ↔
+# Security/Audit VPC (10.10.0.0/16, 계정 399707826519)
+#
+# ⚠️ 피어링은 2단계:
+#   1. 요청자(Prod)가 피어링 요청 → 이 파일에서 생성
+#   2. 수락자(Security)가 수락 → 상대 계정에서 콘솔로 수락해야 함!
+
+# ────────────────────────────────────────────
+# 1. VPC 피어링 요청
+# ────────────────────────────────────────────
+resource "aws_vpc_peering_connection" "prod_to_security" {
+  vpc_id        = module.prod_vpc.vpc_id         # 내 VPC (Prod)
+  peer_vpc_id   = "vpc-0e26f310a98b9d0f8"        # 상대 VPC (Security/Audit)
+  peer_owner_id = "399707826519"                  # Audit AWS 계정 ID
+  peer_region   = "ap-northeast-2"                # 같은 리전
+
+  tags = {
+    Name = "fin-prod-to-audit-peering"
+  }
+}
+
+# ────────────────────────────────────────────
+# 2. 라우팅 테이블에 Audit VPC CIDR 추가
+# ────────────────────────────────────────────
+# "10.10.0.0/16으로 가는 트래픽은 피어링을 통해 보내라"
+
+# Private 서브넷 → Security VPC (EKS 노드가 보안 로그 전송)
+resource "aws_route" "pri_to_security" {
+  route_table_id            = module.prod_vpc.private_route_table_id
+  destination_cidr_block    = "10.10.0.0/16"
+  vpc_peering_connection_id = aws_vpc_peering_connection.prod_to_security.id
+}
+
+# Public 서브넷 → Security VPC
+resource "aws_route" "pub_to_security" {
+  route_table_id            = module.prod_vpc.public_route_table_id
+  destination_cidr_block    = "10.10.0.0/16"
+  vpc_peering_connection_id = aws_vpc_peering_connection.prod_to_security.id
+}

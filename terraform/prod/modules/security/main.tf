@@ -21,16 +21,26 @@ resource "aws_security_group" "alb_sg" {
   tags = { Name = "fin-${var.env_name}-alb-sg" }
 }
 
-# 2. App(EKS/ECS) 보안 그룹 (ALB로부터의 트래픽만 허용)
+# 2. App(EKS) 보안 그룹 (ALB로부터의 트래픽만 허용)
+#    JOA 서비스: Spring Boot(:8080) + Next.js(:3000)
 resource "aws_security_group" "app_sg" {
   name        = "fin-${var.env_name}-app-sg"
   vpc_id      = var.vpc_id
 
   ingress {
+    description     = "Spring Boot backends (bank/openapi/admin)"
     from_port       = 8080
     to_port         = 8080
     protocol        = "tcp"
-    security_groups = [aws_security_group.alb_sg.id] # ALB SG를 소스로 지정 (보안 핵심)
+    security_groups = [aws_security_group.alb_sg.id]
+  }
+
+  ingress {
+    description     = "Next.js frontends (admin/docs/bank-web)"
+    from_port       = 3000
+    to_port         = 3000
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb_sg.id]
   }
 
   egress {

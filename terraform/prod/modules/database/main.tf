@@ -15,7 +15,7 @@ resource "aws_db_instance" "this" {
   instance_class       = "db.t3.micro"
   
   # DB 접속 정보 (변수화 권장)
-  db_name              = "fintech"
+  db_name              = "joa"
   username             = "admin"
   # Secrets Manager에서 생성된 값을 참조
   password = aws_secretsmanager_secret_version.db_password.secret_string

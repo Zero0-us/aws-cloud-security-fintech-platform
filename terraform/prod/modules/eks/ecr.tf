@@ -3,9 +3,16 @@
 ## Output: 서비스별 독립적인 ECR 리포지토리 리소스 생성
 
 variable "service_names" {
-  description = "ECR 리포지토리를 생성할 마이크로서비스 식별자 목록"
+  description = "ECR 리포지토리를 생성할 JOA 서비스 식별자 목록"
   type        = list(string)
-  default     = ["account-service", "auth-service", "payment-service", "transfer-service"]
+  default     = [
+    "bank-backend",       # 뱅킹 백엔드 (Spring Boot, 회원/로그인)
+    "openapi-backend",    # 오픈뱅킹 API (Spring Boot, 계좌/거래/송금)
+    "admin-backend",      # 관리자 백엔드 (Spring Boot, 대시보드 API)
+    "admin-frontend",     # 관리자 대시보드 (Next.js)
+    "docs-frontend",      # API 문서 사이트 (Next.js)
+    "bank-web"            # 뱅킹 웹 프론트엔드 (Next.js, 모바일→웹 변환)
+  ]
 }
 
   # 1. AWS ECR Repository 생성

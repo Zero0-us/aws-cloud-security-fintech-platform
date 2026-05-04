@@ -20,7 +20,7 @@ module "prod_db" {
   env_name           = var.env_name
   db_subnet_ids      = module.prod_vpc.db_subnet_ids
   db_sg_id           = module.prod_security.db_sg_id
-  is_prod_deployment = var.is_prod_deployment # false 값이 들어가서 Single-AZ로 생성됨 (Step 1)
+  is_prod_deployment = var.is_prod_deployment # true → Multi-AZ 활성화 (고가용성)
 }
 
 module "prod_alb" {

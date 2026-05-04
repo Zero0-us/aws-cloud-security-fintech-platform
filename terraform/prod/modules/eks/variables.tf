@@ -16,7 +16,7 @@ variable "cluster_version" {
 
 variable "node_instance_types" {
   type    = list(string)
-  default = ["t3.small"]
+  default = ["t3.medium"]   # JOA Pod 8개 대응 (t3.small → t3.medium)
 }
 
 variable "node_capacity_type" {
@@ -24,8 +24,8 @@ variable "node_capacity_type" {
   default = "ON_DEMAND"
 }
 
-variable "node_desired_size" { default = 1 }
-variable "node_min_size" { default = 1 }
+variable "node_desired_size" { default = 2 }   # 2노드로 Pod 분산
+variable "node_min_size" { default = 2 }
 variable "node_max_size" { default = 4 }
 variable "node_disk_size" { default = 20 }
 

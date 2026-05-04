@@ -9,8 +9,8 @@ enable_dns_hostnames = true
 
 bastion_subnet_2a_cidr = "10.10.10.0/24"
 bastion_subnet_2c_cidr = "10.10.11.0/24"
-peering_subnet_2a_cidr = "10.10.100.0/24"
-peering_subnet_2c_cidr = "10.10.101.0/24"
+tgw_subnet_2a_cidr     = "10.10.100.0/24"
+tgw_subnet_2c_cidr     = "10.10.101.0/24"
 
 kms_key_name        = "fin-s3-cmk"
 kms_key_alias       = "alias/fin-s3-cmk"
@@ -18,8 +18,8 @@ kms_deletion_window = 7
 
 soc_audit_log_bucket_name      = "fin-prod-log-s3"
 dev_log_bucket_name            = "fin-dev-log-s3"
-stage_log_bucket_name          = "fin-stg-log-s3"
-soc_athena_results_bucket_name = "fin-athena-result-s3"
+stage_log_bucket_name          = "fin-stage-log-s3"
+soc_athena_results_bucket_name = "fin-athena-results"
 
 bastion_instance_type = "t3.micro"
 bastion_key_pair_name = ""
@@ -29,6 +29,7 @@ bastion_allowed_ssh_cidrs = []
 enable_guardduty   = false
 enable_securityhub = false
 
+transit_gateway_id              = ""
 prod_vpc_peering_connection_id  = ""
 dev_vpc_peering_connection_id   = ""
 stage_vpc_peering_connection_id = ""

@@ -18,14 +18,14 @@ output "audit_bastion_subnet_2c_id" {
   value       = aws_subnet.bastion_subnet_2c.id
 }
 
-output "audit_peering_subnet_2a_id" {
-  description = "Audit Peering Subnet 2a ID"
-  value       = aws_subnet.peering_subnet_2a.id
+output "audit_tgw_subnet_2a_id" {
+  description = "Audit TGW Subnet 2a ID"
+  value       = aws_subnet.tgw_subnet_2a.id
 }
 
-output "audit_peering_subnet_2c_id" {
-  description = "Audit Peering Subnet 2c ID"
-  value       = aws_subnet.peering_subnet_2c.id
+output "audit_tgw_subnet_2c_id" {
+  description = "Audit TGW Subnet 2c ID"
+  value       = aws_subnet.tgw_subnet_2c.id
 }
 
 output "s3_cmk_arn" {
@@ -153,9 +153,9 @@ output "bastion_route_table_id" {
   value       = aws_route_table.bastion_rt.id
 }
 
-output "peering_route_table_id" {
-  description = "Peering Subnet Route Table ID"
-  value       = aws_route_table.peering_rt.id
+output "tgw_route_table_id" {
+  description = "TGW Subnet Route Table ID"
+  value       = aws_route_table.tgw_rt.id
 }
 
 # ============================================================================

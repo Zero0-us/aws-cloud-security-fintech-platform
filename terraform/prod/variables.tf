@@ -17,9 +17,9 @@ variable "env_name" {
 }
 
 variable "is_prod_deployment" {
-  description = "Step 1 비용 최적화 전략에 따라 RDS의 Multi-AZ 비활성화를 위해 기본값을 false로 유지함"
+  description = "Prod 환경 RDS Multi-AZ 활성화. 고가용성 보장을 위해 true 설정."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "vpc_cidr" {
@@ -50,6 +50,12 @@ variable "db_subnets" {
   description = "데이터 보호를 위해 외부 및 애플리케이션 계층으로부터 격리된 DB 전용 대역"
   type        = list(string)
   default     = ["10.20.20.0/24", "10.20.21.0/24"]
+}
+
+variable "node_group_name" {
+  description = "EKS 노드 그룹 이름"
+  type        = string
+  default     = "fin-prod-nodegroup"
 }
 
 variable "eks_access_entries" {
