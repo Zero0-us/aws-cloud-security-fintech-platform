@@ -46,26 +46,14 @@ variable "enable_dns_hostnames" {
   default     = true
 }
 
-variable "bastion_subnet_2a_cidr" {
-  description = "CIDR block for bastion subnet in 2a"
-  type        = string
-  default     = "10.10.10.0/24"
-}
-
-variable "bastion_subnet_2c_cidr" {
-  description = "CIDR block for bastion subnet in 2c"
-  type        = string
-  default     = "10.10.11.0/24"
-}
-
-variable "tgw_subnet_2a_cidr" {
-  description = "CIDR block for TGW subnet in 2a"
+variable "peering_subnet_2a_cidr" {
+  description = "CIDR block for peering subnet in 2a"
   type        = string
   default     = "10.10.100.0/24"
 }
 
-variable "tgw_subnet_2c_cidr" {
-  description = "CIDR block for TGW subnet in 2c"
+variable "peering_subnet_2c_cidr" {
+  description = "CIDR block for peering subnet in 2c"
   type        = string
   default     = "10.10.101.0/24"
 }
@@ -94,51 +82,27 @@ variable "soc_audit_log_bucket_name" {
   default     = "fin-prod-log-s3"
 }
 
+variable "stage_log_bucket_name" {
+  description = "Staging log bucket name"
+  type        = string
+  default     = "fin-stg-log-s3"
+}
+
 variable "dev_log_bucket_name" {
   description = "Development log bucket name"
   type        = string
   default     = "fin-dev-log-s3"
 }
 
-variable "stage_log_bucket_name" {
-  description = "Staging log bucket name"
-  type        = string
-  default     = "fin-stage-log-s3"
-}
-
 variable "soc_athena_results_bucket_name" {
   description = "SOC Athena query results bucket name"
   type        = string
-  default     = "fin-athena-results"
-}
-
-variable "bastion_instance_type" {
-  description = "EC2 instance type for bastion"
-  type        = string
-  default     = "t3.micro"
-}
-
-variable "bastion_key_pair_name" {
-  description = "SSH key pair name for bastion instance"
-  type        = string
-  default     = ""
-}
-
-variable "bastion_allowed_ssh_cidrs" {
-  description = "CIDR blocks allowed to SSH to the bastion. Keep empty to disable direct SSH ingress."
-  type        = list(string)
-  default     = []
+  default     = "fin-athena-result-s3"
 }
 
 # ============================================================================
-# Transit Gateway (TGW) Variables
+# VPC Peering Variables
 # ============================================================================
-
-variable "transit_gateway_id" {
-  description = "Transit Gateway ID for cross-VPC communication"
-  type        = string
-  default     = ""
-}
 
 variable "prod_vpc_peering_connection_id" {
   description = "VPC peering connection ID from Audit/SOC VPC to Production VPC"
@@ -174,18 +138,6 @@ variable "stage_account_id" {
   description = "Staging AWS account ID allowed to deliver logs into the SOC log archive"
   type        = string
   default     = ""
-}
-
-variable "enable_guardduty" {
-  description = "Enable GuardDuty detector. Disable this for accounts without GuardDuty subscription access."
-  type        = bool
-  default     = false
-}
-
-variable "enable_securityhub" {
-  description = "Enable Security Hub and standards. Disable this for accounts without Security Hub subscription access."
-  type        = bool
-  default     = false
 }
 
 variable "prod_vpc_cidr" {
@@ -244,4 +196,40 @@ variable "monthly_audit_schedule_expression" {
   description = "EventBridge schedule expression for monthly audit report notification"
   type        = string
   default     = "cron(0 0 1 * ? *)"
+}
+
+variable "cloudwatch_export_schedule_expression" {
+  description = "EventBridge schedule expression for the central CloudWatch Logs export Lambda"
+  type        = string
+  default     = "cron(0 18 * * ? *)"
+}
+
+variable "cloudwatch_export_role_name" {
+  description = "Cross-account IAM role name that the SOC export Lambda assumes in workload accounts"
+  type        = string
+  default     = "fin-cloudwatch-export-role"
+}
+
+variable "cloudwatch_export_log_group_prefixes" {
+  description = "CloudWatch Log Group name prefixes exported by the central SOC Lambda"
+  type        = list(string)
+  default = [
+    "/aws/cloudtrail/",
+    "/aws/config/",
+    "/aws/vpc/flowlogs/",
+    "/aws/application/",
+    "/aws/elasticloadbalancing/"
+  ]
+}
+
+variable "cloudwatch_export_lookback_hours" {
+  description = "Number of hours exported from CloudWatch Logs on each scheduled run"
+  type        = number
+  default     = 24
+}
+
+variable "cloudwatch_export_max_tasks_per_account" {
+  description = "Maximum CloudWatch Logs export tasks to create per account per Lambda invocation"
+  type        = number
+  default     = 1
 }

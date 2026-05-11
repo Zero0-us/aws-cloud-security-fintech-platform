@@ -16,43 +16,23 @@ resource "aws_vpc" "audit_vpc" {
 # Subnets
 # ============================================================================
 
-resource "aws_subnet" "bastion_subnet_2a" {
+resource "aws_subnet" "peering_subnet_2a" {
   vpc_id            = aws_vpc.audit_vpc.id
-  cidr_block        = var.bastion_subnet_2a_cidr
+  cidr_block        = var.peering_subnet_2a_cidr
   availability_zone = "${var.aws_region}a"
 
   tags = {
-    Name = "fin-audit-bastion-sub-2a"
+    Name = "fin-audit-peering-sub-2a"
   }
 }
 
-resource "aws_subnet" "bastion_subnet_2c" {
+resource "aws_subnet" "peering_subnet_2c" {
   vpc_id            = aws_vpc.audit_vpc.id
-  cidr_block        = var.bastion_subnet_2c_cidr
+  cidr_block        = var.peering_subnet_2c_cidr
   availability_zone = "${var.aws_region}c"
 
   tags = {
-    Name = "fin-audit-bastion-sub-2c"
-  }
-}
-
-resource "aws_subnet" "tgw_subnet_2a" {
-  vpc_id            = aws_vpc.audit_vpc.id
-  cidr_block        = var.tgw_subnet_2a_cidr
-  availability_zone = "${var.aws_region}a"
-
-  tags = {
-    Name = "fin-audit-tgw-sub-2a"
-  }
-}
-
-resource "aws_subnet" "tgw_subnet_2c" {
-  vpc_id            = aws_vpc.audit_vpc.id
-  cidr_block        = var.tgw_subnet_2c_cidr
-  availability_zone = "${var.aws_region}c"
-
-  tags = {
-    Name = "fin-audit-tgw-sub-2c"
+    Name = "fin-audit-peering-sub-2c"
   }
 }
 
@@ -70,10 +50,34 @@ locals {
     var.stage_account_id
   ])
 
-  workload_vpc_cidrs = [
-    var.prod_vpc_cidr,
-    var.dev_vpc_cidr,
-    var.stage_vpc_cidr
+  prod_log_source_account_ids = compact([
+    data.aws_caller_identity.current.account_id,
+    var.prod_account_id
+  ])
+
+  stage_log_source_account_ids = compact([
+    data.aws_caller_identity.current.account_id,
+    var.stage_account_id
+  ])
+
+  dev_log_source_account_ids = compact([
+    data.aws_caller_identity.current.account_id,
+    var.dev_account_id
+  ])
+
+  prod_cloudwatch_logs_source_arns = [
+    for account_id in local.prod_log_source_account_ids :
+    "arn:aws:logs:${var.aws_region}:${account_id}:log-group:*"
+  ]
+
+  stage_cloudwatch_logs_source_arns = [
+    for account_id in local.stage_log_source_account_ids :
+    "arn:aws:logs:${var.aws_region}:${account_id}:log-group:*"
+  ]
+
+  dev_cloudwatch_logs_source_arns = [
+    for account_id in local.dev_log_source_account_ids :
+    "arn:aws:logs:${var.aws_region}:${account_id}:log-group:*"
   ]
 
   peering_routes = {
@@ -94,24 +98,39 @@ locals {
   }
 
   service_log_intake_manifest = {
-    version        = "2026-04-30"
-    purpose        = "Central SOC log archive intake contract for service-level logs"
-    central_bucket = var.soc_audit_log_bucket_name
+    version = "2026-05-06"
+    purpose = "CloudWatch Logs based central SOC log archive intake contract"
+    central_buckets = {
+      prod   = var.soc_audit_log_bucket_name
+      stage  = var.stage_log_bucket_name
+      dev    = var.dev_log_bucket_name
+      athena = var.soc_athena_results_bucket_name
+    }
     accepted_sources = [
       {
         service = "cloudtrail"
-        prefix  = "soc-logs/cloudtrail/AWSLogs/<account-id>/CloudTrail/"
-        status  = "enabled_in_this_module"
+        prefix  = "cloudwatch-exports/cloudtrail/<log-group-name>/"
+        status  = "export_from_workload_cloudwatch_logs"
       },
       {
         service = "aws-config"
-        prefix  = "soc-logs/config/AWSLogs/<account-id>/Config/"
-        status  = "enabled_in_this_module"
+        prefix  = "cloudwatch-exports/config/<log-group-name>/"
+        status  = "export_from_workload_cloudwatch_logs"
       },
       {
         service = "vpc-flow-logs"
-        prefix  = "soc-logs/vpc-flow-logs/AWSLogs/<account-id>/"
-        status  = "enabled_in_this_module"
+        prefix  = "cloudwatch-exports/vpc-flow-logs/<log-group-name>/"
+        status  = "export_from_workload_cloudwatch_logs"
+      },
+      {
+        service = "application-logs"
+        prefix  = "cloudwatch-exports/app/<log-group-name>/"
+        status  = "export_from_workload_cloudwatch_logs"
+      },
+      {
+        service = "soc-cloudwatch-logs"
+        prefix  = "soc-logs/cloudwatch-exports/<log-group-name>/"
+        status  = "export_from_soc_cloudwatch_logs"
       },
       {
         service = "alb-access-logs"
@@ -173,7 +192,7 @@ locals {
       {
         control_id = "ISMS-P-2.10.1"
         title      = "Security system operation"
-        evidence   = "GuardDuty and Security Hub optional detectors plus Config non-compliance alerts"
+        evidence   = "AWS Config rules and audit log review evidence"
         config_rules = [
           "soc-cloudtrail-enabled",
           "soc-s3-encryption-enabled"
@@ -232,7 +251,8 @@ resource "aws_kms_key" "s3_cmk" {
         Principal = {
           Service = [
             "config.amazonaws.com",
-            "delivery.logs.amazonaws.com"
+            "delivery.logs.amazonaws.com",
+            "logs.${var.aws_region}.amazonaws.com"
           ]
         }
         Action = [
@@ -266,41 +286,6 @@ resource "aws_kms_alias" "s3_cmk_alias" {
 # S3 Buckets
 # ============================================================================
 
-moved {
-  from = aws_s3_bucket.soc_compliance_bucket
-  to   = aws_s3_bucket.dev_log_bucket
-}
-
-moved {
-  from = aws_s3_bucket_public_access_block.soc_compliance_bucket_pab
-  to   = aws_s3_bucket_public_access_block.dev_log_bucket_pab
-}
-
-moved {
-  from = aws_s3_bucket_versioning.soc_compliance_bucket_versioning
-  to   = aws_s3_bucket_versioning.dev_log_bucket_versioning
-}
-
-moved {
-  from = aws_s3_bucket_server_side_encryption_configuration.soc_compliance_bucket_encryption
-  to   = aws_s3_bucket_server_side_encryption_configuration.dev_log_bucket_encryption
-}
-
-moved {
-  from = aws_s3_bucket_ownership_controls.soc_compliance_bucket_ownership
-  to   = aws_s3_bucket_ownership_controls.dev_log_bucket_ownership
-}
-
-moved {
-  from = aws_s3_bucket_lifecycle_configuration.soc_compliance_bucket_lifecycle
-  to   = aws_s3_bucket_lifecycle_configuration.dev_log_bucket_lifecycle
-}
-
-moved {
-  from = aws_s3_bucket_policy.soc_compliance_bucket_policy
-  to   = aws_s3_bucket_policy.dev_log_bucket_policy
-}
-
 resource "aws_s3_bucket" "soc_audit_log_bucket" {
   bucket        = var.soc_audit_log_bucket_name
   force_destroy = true
@@ -311,16 +296,6 @@ resource "aws_s3_bucket" "soc_audit_log_bucket" {
   }
 }
 
-resource "aws_s3_bucket" "dev_log_bucket" {
-  bucket        = var.dev_log_bucket_name
-  force_destroy = true
-
-  tags = {
-    Name      = var.dev_log_bucket_name
-    DataClass = "dev-log"
-  }
-}
-
 resource "aws_s3_bucket" "stage_log_bucket" {
   bucket        = var.stage_log_bucket_name
   force_destroy = true
@@ -328,6 +303,16 @@ resource "aws_s3_bucket" "stage_log_bucket" {
   tags = {
     Name      = var.stage_log_bucket_name
     DataClass = "stage-log"
+  }
+}
+
+resource "aws_s3_bucket" "dev_log_bucket" {
+  bucket        = var.dev_log_bucket_name
+  force_destroy = true
+
+  tags = {
+    Name      = var.dev_log_bucket_name
+    DataClass = "dev-log"
   }
 }
 
@@ -354,8 +339,8 @@ resource "aws_s3_bucket_public_access_block" "soc_audit_log_bucket_pab" {
   restrict_public_buckets = true
 }
 
-resource "aws_s3_bucket_public_access_block" "dev_log_bucket_pab" {
-  bucket = aws_s3_bucket.dev_log_bucket.id
+resource "aws_s3_bucket_public_access_block" "stage_log_bucket_pab" {
+  bucket = aws_s3_bucket.stage_log_bucket.id
 
   block_public_acls       = true
   block_public_policy     = true
@@ -363,8 +348,8 @@ resource "aws_s3_bucket_public_access_block" "dev_log_bucket_pab" {
   restrict_public_buckets = true
 }
 
-resource "aws_s3_bucket_public_access_block" "stage_log_bucket_pab" {
-  bucket = aws_s3_bucket.stage_log_bucket.id
+resource "aws_s3_bucket_public_access_block" "dev_log_bucket_pab" {
+  bucket = aws_s3_bucket.dev_log_bucket.id
 
   block_public_acls       = true
   block_public_policy     = true
@@ -393,16 +378,16 @@ resource "aws_s3_bucket_versioning" "soc_audit_log_bucket_versioning" {
   }
 }
 
-resource "aws_s3_bucket_versioning" "dev_log_bucket_versioning" {
-  bucket = aws_s3_bucket.dev_log_bucket.id
+resource "aws_s3_bucket_versioning" "stage_log_bucket_versioning" {
+  bucket = aws_s3_bucket.stage_log_bucket.id
 
   versioning_configuration {
     status = "Enabled"
   }
 }
 
-resource "aws_s3_bucket_versioning" "stage_log_bucket_versioning" {
-  bucket = aws_s3_bucket.stage_log_bucket.id
+resource "aws_s3_bucket_versioning" "dev_log_bucket_versioning" {
+  bucket = aws_s3_bucket.dev_log_bucket.id
 
   versioning_configuration {
     status = "Enabled"
@@ -433,8 +418,8 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "soc_audit_log_buc
   }
 }
 
-resource "aws_s3_bucket_server_side_encryption_configuration" "dev_log_bucket_encryption" {
-  bucket = aws_s3_bucket.dev_log_bucket.id
+resource "aws_s3_bucket_server_side_encryption_configuration" "stage_log_bucket_encryption" {
+  bucket = aws_s3_bucket.stage_log_bucket.id
 
   rule {
     apply_server_side_encryption_by_default {
@@ -445,8 +430,8 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "dev_log_bucket_en
   }
 }
 
-resource "aws_s3_bucket_server_side_encryption_configuration" "stage_log_bucket_encryption" {
-  bucket = aws_s3_bucket.stage_log_bucket.id
+resource "aws_s3_bucket_server_side_encryption_configuration" "dev_log_bucket_encryption" {
+  bucket = aws_s3_bucket.dev_log_bucket.id
 
   rule {
     apply_server_side_encryption_by_default {
@@ -481,16 +466,16 @@ resource "aws_s3_bucket_ownership_controls" "soc_audit_log_bucket_ownership" {
   }
 }
 
-resource "aws_s3_bucket_ownership_controls" "dev_log_bucket_ownership" {
-  bucket = aws_s3_bucket.dev_log_bucket.id
+resource "aws_s3_bucket_ownership_controls" "stage_log_bucket_ownership" {
+  bucket = aws_s3_bucket.stage_log_bucket.id
 
   rule {
     object_ownership = "BucketOwnerEnforced"
   }
 }
 
-resource "aws_s3_bucket_ownership_controls" "stage_log_bucket_ownership" {
-  bucket = aws_s3_bucket.stage_log_bucket.id
+resource "aws_s3_bucket_ownership_controls" "dev_log_bucket_ownership" {
+  bucket = aws_s3_bucket.dev_log_bucket.id
 
   rule {
     object_ownership = "BucketOwnerEnforced"
@@ -530,11 +515,11 @@ resource "aws_s3_bucket_lifecycle_configuration" "soc_audit_log_bucket_lifecycle
   }
 }
 
-resource "aws_s3_bucket_lifecycle_configuration" "dev_log_bucket_lifecycle" {
-  bucket = aws_s3_bucket.dev_log_bucket.id
+resource "aws_s3_bucket_lifecycle_configuration" "stage_log_bucket_lifecycle" {
+  bucket = aws_s3_bucket.stage_log_bucket.id
 
   rule {
-    id     = "dev-log-retention"
+    id     = "stage-log-retention"
     status = "Enabled"
 
     filter {}
@@ -555,11 +540,11 @@ resource "aws_s3_bucket_lifecycle_configuration" "dev_log_bucket_lifecycle" {
   }
 }
 
-resource "aws_s3_bucket_lifecycle_configuration" "stage_log_bucket_lifecycle" {
-  bucket = aws_s3_bucket.stage_log_bucket.id
+resource "aws_s3_bucket_lifecycle_configuration" "dev_log_bucket_lifecycle" {
+  bucket = aws_s3_bucket.dev_log_bucket.id
 
   rule {
-    id     = "stage-log-retention"
+    id     = "dev-log-retention"
     status = "Enabled"
 
     filter {}
@@ -831,28 +816,11 @@ resource "aws_s3_bucket_lifecycle_configuration" "soc_athena_results_bucket_life
 }
 
 # ============================================================================
-# Internet Gateway
+# Route Table (Peering Subnet) - 다른 VPC로의 라우팅
 # ============================================================================
 
-resource "aws_internet_gateway" "audit_igw" {
+resource "aws_route_table" "peering_rt" {
   vpc_id = aws_vpc.audit_vpc.id
-
-  tags = {
-    Name = "fin-audit-igw"
-  }
-}
-
-# ============================================================================
-# Route Table (Bastion Subnet)
-# ============================================================================
-
-resource "aws_route_table" "bastion_rt" {
-  vpc_id = aws_vpc.audit_vpc.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.audit_igw.id
-  }
 
   dynamic "route" {
     for_each = local.peering_routes
@@ -864,145 +832,18 @@ resource "aws_route_table" "bastion_rt" {
   }
 
   tags = {
-    Name = "fin-audit-bastion-rt"
+    Name = "fin-audit-peering-rt"
   }
 }
 
-# ============================================================================
-# Route Table (TGW Subnet) - 다른 VPC로의 라우팅
-# ============================================================================
-
-resource "aws_route_table" "tgw_rt" {
-  vpc_id = aws_vpc.audit_vpc.id
-
-  dynamic "route" {
-    for_each = var.transit_gateway_id != "" ? local.workload_vpc_cidrs : []
-
-    content {
-      cidr_block         = route.value
-      transit_gateway_id = var.transit_gateway_id
-    }
-  }
-
-  dynamic "route" {
-    for_each = local.peering_routes
-
-    content {
-      cidr_block                = route.value.cidr_block
-      vpc_peering_connection_id = route.value.vpc_peering_connection_id
-    }
-  }
-
-  tags = {
-    Name = "fin-audit-tgw-rt"
-  }
+resource "aws_route_table_association" "peering_2a_rta" {
+  subnet_id      = aws_subnet.peering_subnet_2a.id
+  route_table_id = aws_route_table.peering_rt.id
 }
 
-resource "aws_route_table_association" "bastion_2a_rta" {
-  subnet_id      = aws_subnet.bastion_subnet_2a.id
-  route_table_id = aws_route_table.bastion_rt.id
-}
-
-resource "aws_route_table_association" "bastion_2c_rta" {
-  subnet_id      = aws_subnet.bastion_subnet_2c.id
-  route_table_id = aws_route_table.bastion_rt.id
-}
-
-# ============================================================================
-# Route Table Association for TGW Subnet
-# ============================================================================
-
-resource "aws_route_table_association" "tgw_2a_rta" {
-  subnet_id      = aws_subnet.tgw_subnet_2a.id
-  route_table_id = aws_route_table.tgw_rt.id
-}
-
-resource "aws_route_table_association" "tgw_2c_rta" {
-  subnet_id      = aws_subnet.tgw_subnet_2c.id
-  route_table_id = aws_route_table.tgw_rt.id
-}
-
-# ============================================================================
-# Security Group (Bastion)
-# ============================================================================
-
-resource "aws_security_group" "bastion_sg" {
-  name_prefix = "fin-audit-bastion-"
-  description = "Security group for bastion host"
-  vpc_id      = aws_vpc.audit_vpc.id
-
-  dynamic "ingress" {
-    for_each = var.bastion_allowed_ssh_cidrs
-
-    content {
-      from_port   = 22
-      to_port     = 22
-      protocol    = "tcp"
-      cidr_blocks = [ingress.value]
-    }
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "fin-audit-bastion-sg"
-  }
-}
-
-# ============================================================================
-# Data source for latest Amazon Linux 2 AMI
-# ============================================================================
-
-data "aws_ami" "amazon_linux_2" {
-  most_recent = true
-  owners      = ["amazon"]
-
-  filter {
-    name   = "name"
-    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-}
-
-# ============================================================================
-# EC2 Bastion Instance
-# ============================================================================
-
-resource "aws_instance" "bastion" {
-  ami                    = data.aws_ami.amazon_linux_2.id
-  instance_type          = var.bastion_instance_type
-  subnet_id              = aws_subnet.bastion_subnet_2a.id
-  key_name               = var.bastion_key_pair_name != "" ? var.bastion_key_pair_name : null
-  vpc_security_group_ids = [aws_security_group.bastion_sg.id]
-
-  associate_public_ip_address = true
-
-  tags = {
-    Name = "fin-audit-bastion"
-  }
-}
-
-resource "aws_instance" "bastion_2c" {
-  ami                    = data.aws_ami.amazon_linux_2.id
-  instance_type          = var.bastion_instance_type
-  subnet_id              = aws_subnet.bastion_subnet_2c.id
-  key_name               = var.bastion_key_pair_name != "" ? var.bastion_key_pair_name : null
-  vpc_security_group_ids = [aws_security_group.bastion_sg.id]
-
-  associate_public_ip_address = true
-
-  tags = {
-    Name = "fin-audit-bastion-2c"
-  }
+resource "aws_route_table_association" "peering_2c_rta" {
+  subnet_id      = aws_subnet.peering_subnet_2c.id
+  route_table_id = aws_route_table.peering_rt.id
 }
 
 # ============================================================================
@@ -1113,8 +954,8 @@ resource "aws_cloudtrail" "audit_trail" {
       type = "AWS::S3::Object"
       values = [
         "${aws_s3_bucket.soc_audit_log_bucket.arn}/",
-        "${aws_s3_bucket.dev_log_bucket.arn}/",
         "${aws_s3_bucket.stage_log_bucket.arn}/",
+        "${aws_s3_bucket.dev_log_bucket.arn}/",
         "${aws_s3_bucket.soc_athena_results_bucket.arn}/"
       ]
     }
@@ -1272,6 +1113,44 @@ resource "aws_s3_bucket_policy" "soc_audit_log_bucket_policy" {
         }
       },
       {
+        Sid    = "CloudWatchLogsExportAclCheck"
+        Effect = "Allow"
+        Principal = {
+          Service = "logs.${var.aws_region}.amazonaws.com"
+        }
+        Action = [
+          "s3:GetBucketAcl",
+          "s3:ListBucket"
+        ]
+        Resource = aws_s3_bucket.soc_audit_log_bucket.arn
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = local.prod_log_source_account_ids
+          }
+          ArnLike = {
+            "aws:SourceArn" = local.prod_cloudwatch_logs_source_arns
+          }
+        }
+      },
+      {
+        Sid    = "CloudWatchLogsExportWrite"
+        Effect = "Allow"
+        Principal = {
+          Service = "logs.${var.aws_region}.amazonaws.com"
+        }
+        Action   = "s3:PutObject"
+        Resource = "${aws_s3_bucket.soc_audit_log_bucket.arn}/cloudwatch-exports/*"
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = local.prod_log_source_account_ids
+            "s3:x-amz-acl"      = "bucket-owner-full-control"
+          }
+          ArnLike = {
+            "aws:SourceArn" = local.prod_cloudwatch_logs_source_arns
+          }
+        }
+      },
+      {
         Sid    = "DenyInsecureTransport"
         Effect = "Deny"
         Principal = {
@@ -1281,33 +1160,6 @@ resource "aws_s3_bucket_policy" "soc_audit_log_bucket_policy" {
         Resource = [
           aws_s3_bucket.soc_audit_log_bucket.arn,
           "${aws_s3_bucket.soc_audit_log_bucket.arn}/*"
-        ]
-        Condition = {
-          Bool = {
-            "aws:SecureTransport" = "false"
-          }
-        }
-      }
-    ]
-  })
-}
-
-resource "aws_s3_bucket_policy" "dev_log_bucket_policy" {
-  bucket = aws_s3_bucket.dev_log_bucket.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "DenyInsecureTransport"
-        Effect = "Deny"
-        Principal = {
-          AWS = "*"
-        }
-        Action = "s3:*"
-        Resource = [
-          aws_s3_bucket.dev_log_bucket.arn,
-          "${aws_s3_bucket.dev_log_bucket.arn}/*"
         ]
         Condition = {
           Bool = {
@@ -1464,6 +1316,44 @@ resource "aws_s3_bucket_policy" "stage_log_bucket_policy" {
         }
       },
       {
+        Sid    = "CloudWatchLogsExportAclCheck"
+        Effect = "Allow"
+        Principal = {
+          Service = "logs.${var.aws_region}.amazonaws.com"
+        }
+        Action = [
+          "s3:GetBucketAcl",
+          "s3:ListBucket"
+        ]
+        Resource = aws_s3_bucket.stage_log_bucket.arn
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = local.stage_log_source_account_ids
+          }
+          ArnLike = {
+            "aws:SourceArn" = local.stage_cloudwatch_logs_source_arns
+          }
+        }
+      },
+      {
+        Sid    = "CloudWatchLogsExportWrite"
+        Effect = "Allow"
+        Principal = {
+          Service = "logs.${var.aws_region}.amazonaws.com"
+        }
+        Action   = "s3:PutObject"
+        Resource = "${aws_s3_bucket.stage_log_bucket.arn}/cloudwatch-exports/*"
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = local.stage_log_source_account_ids
+            "s3:x-amz-acl"      = "bucket-owner-full-control"
+          }
+          ArnLike = {
+            "aws:SourceArn" = local.stage_cloudwatch_logs_source_arns
+          }
+        }
+      },
+      {
         Sid    = "DenyInsecureTransport"
         Effect = "Deny"
         Principal = {
@@ -1473,6 +1363,197 @@ resource "aws_s3_bucket_policy" "stage_log_bucket_policy" {
         Resource = [
           aws_s3_bucket.stage_log_bucket.arn,
           "${aws_s3_bucket.stage_log_bucket.arn}/*"
+        ]
+        Condition = {
+          Bool = {
+            "aws:SecureTransport" = "false"
+          }
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_s3_bucket_policy" "dev_log_bucket_policy" {
+  bucket = aws_s3_bucket.dev_log_bucket.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AWSCloudTrailAclCheck"
+        Effect = "Allow"
+        Principal = {
+          Service = "cloudtrail.amazonaws.com"
+        }
+        Action   = "s3:GetBucketAcl"
+        Resource = aws_s3_bucket.dev_log_bucket.arn
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = local.dev_log_source_account_ids
+          }
+        }
+      },
+      {
+        Sid    = "AWSCloudTrailCrossAccountWrite"
+        Effect = "Allow"
+        Principal = {
+          Service = "cloudtrail.amazonaws.com"
+        }
+        Action   = "s3:PutObject"
+        Resource = "${aws_s3_bucket.dev_log_bucket.arn}/AWSLogs/*"
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = local.dev_log_source_account_ids
+            "s3:x-amz-acl"      = "bucket-owner-full-control"
+          }
+        }
+      },
+      {
+        Sid    = "AWSConfigBucketPermissionsCheck"
+        Effect = "Allow"
+        Principal = {
+          Service = "config.amazonaws.com"
+        }
+        Action   = "s3:GetBucketAcl"
+        Resource = aws_s3_bucket.dev_log_bucket.arn
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = local.dev_log_source_account_ids
+          }
+        }
+      },
+      {
+        Sid    = "AWSConfigBucketExistenceCheck"
+        Effect = "Allow"
+        Principal = {
+          Service = "config.amazonaws.com"
+        }
+        Action   = "s3:ListBucket"
+        Resource = aws_s3_bucket.dev_log_bucket.arn
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = local.dev_log_source_account_ids
+          }
+        }
+      },
+      {
+        Sid    = "AWSConfigBucketDelivery"
+        Effect = "Allow"
+        Principal = {
+          Service = "config.amazonaws.com"
+        }
+        Action   = "s3:PutObject"
+        Resource = "${aws_s3_bucket.dev_log_bucket.arn}/AWSLogs/*/Config/*"
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = local.dev_log_source_account_ids
+            "s3:x-amz-acl"      = "bucket-owner-full-control"
+          }
+        }
+      },
+      {
+        Sid    = "AWSLogDeliveryAclCheck"
+        Effect = "Allow"
+        Principal = {
+          Service = "delivery.logs.amazonaws.com"
+        }
+        Action = [
+          "s3:GetBucketAcl",
+          "s3:ListBucket"
+        ]
+        Resource = aws_s3_bucket.dev_log_bucket.arn
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = local.dev_log_source_account_ids
+          }
+        }
+      },
+      {
+        Sid    = "AWSLogDeliveryWrite"
+        Effect = "Allow"
+        Principal = {
+          Service = "delivery.logs.amazonaws.com"
+        }
+        Action   = "s3:PutObject"
+        Resource = "${aws_s3_bucket.dev_log_bucket.arn}/vpc-flow-logs/AWSLogs/*"
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = local.dev_log_source_account_ids
+            "s3:x-amz-acl"      = "bucket-owner-full-control"
+          }
+        }
+      },
+      {
+        Sid    = "AWSServiceLogDeliveryWrite"
+        Effect = "Allow"
+        Principal = {
+          Service = [
+            "delivery.logs.amazonaws.com",
+            "logdelivery.elasticloadbalancing.amazonaws.com"
+          ]
+        }
+        Action = "s3:PutObject"
+        Resource = [
+          "${aws_s3_bucket.dev_log_bucket.arn}/alb/AWSLogs/*",
+          "${aws_s3_bucket.dev_log_bucket.arn}/waf/AWSLogs/*",
+          "${aws_s3_bucket.dev_log_bucket.arn}/eks/AWSLogs/*"
+        ]
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = local.dev_log_source_account_ids
+            "s3:x-amz-acl"      = "bucket-owner-full-control"
+          }
+        }
+      },
+      {
+        Sid    = "CloudWatchLogsExportAclCheck"
+        Effect = "Allow"
+        Principal = {
+          Service = "logs.${var.aws_region}.amazonaws.com"
+        }
+        Action = [
+          "s3:GetBucketAcl",
+          "s3:ListBucket"
+        ]
+        Resource = aws_s3_bucket.dev_log_bucket.arn
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = local.dev_log_source_account_ids
+          }
+          ArnLike = {
+            "aws:SourceArn" = local.dev_cloudwatch_logs_source_arns
+          }
+        }
+      },
+      {
+        Sid    = "CloudWatchLogsExportWrite"
+        Effect = "Allow"
+        Principal = {
+          Service = "logs.${var.aws_region}.amazonaws.com"
+        }
+        Action   = "s3:PutObject"
+        Resource = "${aws_s3_bucket.dev_log_bucket.arn}/cloudwatch-exports/*"
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = local.dev_log_source_account_ids
+            "s3:x-amz-acl"      = "bucket-owner-full-control"
+          }
+          ArnLike = {
+            "aws:SourceArn" = local.dev_cloudwatch_logs_source_arns
+          }
+        }
+      },
+      {
+        Sid    = "DenyInsecureTransport"
+        Effect = "Deny"
+        Principal = {
+          AWS = "*"
+        }
+        Action = "s3:*"
+        Resource = [
+          aws_s3_bucket.dev_log_bucket.arn,
+          "${aws_s3_bucket.dev_log_bucket.arn}/*"
         ]
         Condition = {
           Bool = {
@@ -1588,6 +1669,44 @@ resource "aws_s3_bucket_policy" "soc_athena_results_bucket_policy" {
           StringEquals = {
             "aws:SourceAccount" = data.aws_caller_identity.current.account_id
             "s3:x-amz-acl"      = "bucket-owner-full-control"
+          }
+        }
+      },
+      {
+        Sid    = "SOCCloudWatchLogsExportAclCheck"
+        Effect = "Allow"
+        Principal = {
+          Service = "logs.${var.aws_region}.amazonaws.com"
+        }
+        Action = [
+          "s3:GetBucketAcl",
+          "s3:ListBucket"
+        ]
+        Resource = aws_s3_bucket.soc_athena_results_bucket.arn
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = data.aws_caller_identity.current.account_id
+          }
+          ArnLike = {
+            "aws:SourceArn" = "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:*"
+          }
+        }
+      },
+      {
+        Sid    = "SOCCloudWatchLogsExportWrite"
+        Effect = "Allow"
+        Principal = {
+          Service = "logs.${var.aws_region}.amazonaws.com"
+        }
+        Action   = "s3:PutObject"
+        Resource = "${aws_s3_bucket.soc_athena_results_bucket.arn}/soc-logs/cloudwatch-exports/*"
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = data.aws_caller_identity.current.account_id
+            "s3:x-amz-acl"      = "bucket-owner-full-control"
+          }
+          ArnLike = {
+            "aws:SourceArn" = "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:*"
           }
         }
       },
@@ -1874,6 +1993,50 @@ locals {
     aws_config_config_rule.iam_user_mfa_enabled.name,
     aws_config_config_rule.root_account_mfa_enabled.name
   ]
+
+  cloudwatch_export_targets = concat(
+    var.prod_account_id != "" ? [
+      {
+        name               = "prod"
+        account_id         = var.prod_account_id
+        role_arn           = "arn:aws:iam::${var.prod_account_id}:role/${var.cloudwatch_export_role_name}"
+        bucket             = aws_s3_bucket.soc_audit_log_bucket.id
+        destination_prefix = "cloudwatch-exports"
+      }
+    ] : [],
+    var.stage_account_id != "" ? [
+      {
+        name               = "stg"
+        account_id         = var.stage_account_id
+        role_arn           = "arn:aws:iam::${var.stage_account_id}:role/${var.cloudwatch_export_role_name}"
+        bucket             = aws_s3_bucket.stage_log_bucket.id
+        destination_prefix = "cloudwatch-exports"
+      }
+    ] : [],
+    var.dev_account_id != "" ? [
+      {
+        name               = "dev"
+        account_id         = var.dev_account_id
+        role_arn           = "arn:aws:iam::${var.dev_account_id}:role/${var.cloudwatch_export_role_name}"
+        bucket             = aws_s3_bucket.dev_log_bucket.id
+        destination_prefix = "cloudwatch-exports"
+      }
+    ] : [],
+    [
+      {
+        name               = "soc"
+        account_id         = data.aws_caller_identity.current.account_id
+        role_arn           = ""
+        bucket             = aws_s3_bucket.soc_athena_results_bucket.id
+        destination_prefix = "soc-logs/cloudwatch-exports"
+      }
+    ]
+  )
+
+  cloudwatch_export_role_arns = [
+    for target in local.cloudwatch_export_targets : target.role_arn
+    if target.role_arn != ""
+  ]
 }
 
 data "archive_file" "monthly_audit_report" {
@@ -1967,6 +2130,8 @@ resource "aws_iam_role_policy" "monthly_audit_report_lambda" {
           "${aws_s3_bucket.soc_audit_log_bucket.arn}/*",
           aws_s3_bucket.stage_log_bucket.arn,
           "${aws_s3_bucket.stage_log_bucket.arn}/*",
+          aws_s3_bucket.dev_log_bucket.arn,
+          "${aws_s3_bucket.dev_log_bucket.arn}/*",
           aws_s3_bucket.soc_athena_results_bucket.arn,
           "${aws_s3_bucket.soc_athena_results_bucket.arn}/*"
         ]
@@ -2053,6 +2218,136 @@ resource "aws_lambda_permission" "allow_monthly_audit_eventbridge" {
   function_name = aws_lambda_function.monthly_audit_report.function_name
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.monthly_audit_report.arn
+}
+
+resource "aws_cloudwatch_event_rule" "cloudwatch_logs_export" {
+  name                = "fin-soc-cloudwatch-logs-export"
+  description         = "Runs the central SOC CloudWatch Logs export scheduler."
+  schedule_expression = var.cloudwatch_export_schedule_expression
+}
+
+data "archive_file" "cloudwatch_logs_export" {
+  type        = "zip"
+  source_file = "${path.module}/lambda/cloudwatch_logs_export.py"
+  output_path = "${path.module}/build/cloudwatch_logs_export.zip"
+}
+
+resource "aws_iam_role" "cloudwatch_logs_export_lambda" {
+  name_prefix = "cloudwatch-logs-export-"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+
+  tags = {
+    Name = "cloudwatch-logs-export-lambda-role"
+  }
+}
+
+resource "aws_iam_role_policy" "cloudwatch_logs_export_lambda" {
+  name_prefix = "cloudwatch-logs-export-"
+  role        = aws_iam_role.cloudwatch_logs_export_lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = concat(
+      [
+        {
+          Sid    = "WriteLambdaLogs"
+          Effect = "Allow"
+          Action = [
+            "logs:CreateLogGroup",
+            "logs:CreateLogStream",
+            "logs:PutLogEvents"
+          ]
+          Resource = "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/fin-soc-cloudwatch-logs-export*"
+        },
+        {
+          Sid    = "ManageSocCloudWatchExportTasks"
+          Effect = "Allow"
+          Action = [
+            "logs:CreateExportTask",
+            "logs:DescribeExportTasks",
+            "logs:DescribeLogGroups",
+            "logs:DescribeLogStreams",
+            "logs:CancelExportTask"
+          ]
+          Resource = "*"
+        },
+        {
+          Sid      = "PublishExportNotification"
+          Effect   = "Allow"
+          Action   = "sns:Publish"
+          Resource = aws_sns_topic.soc_audit_notifications.arn
+        }
+      ],
+      length(local.cloudwatch_export_role_arns) > 0 ? [
+        {
+          Sid      = "AssumeWorkloadCloudWatchExportRoles"
+          Effect   = "Allow"
+          Action   = "sts:AssumeRole"
+          Resource = local.cloudwatch_export_role_arns
+        }
+      ] : []
+    )
+  })
+}
+
+resource "aws_lambda_function" "cloudwatch_logs_export" {
+  function_name    = "fin-soc-cloudwatch-logs-export"
+  role             = aws_iam_role.cloudwatch_logs_export_lambda.arn
+  handler          = "cloudwatch_logs_export.handler"
+  runtime          = "python3.12"
+  filename         = data.archive_file.cloudwatch_logs_export.output_path
+  source_code_hash = data.archive_file.cloudwatch_logs_export.output_base64sha256
+  timeout          = 900
+  memory_size      = 256
+
+  environment {
+    variables = {
+      AWS_REGION_NAME       = var.aws_region
+      TARGET_ACCOUNTS       = jsonencode(local.cloudwatch_export_targets)
+      LOG_GROUP_PREFIXES    = jsonencode(var.cloudwatch_export_log_group_prefixes)
+      LOOKBACK_HOURS        = tostring(var.cloudwatch_export_lookback_hours)
+      MAX_TASKS_PER_ACCOUNT = tostring(var.cloudwatch_export_max_tasks_per_account)
+      SNS_TOPIC_ARN         = aws_sns_topic.soc_audit_notifications.arn
+    }
+  }
+
+  depends_on = [
+    aws_iam_role_policy.cloudwatch_logs_export_lambda,
+    aws_s3_bucket_policy.soc_audit_log_bucket_policy,
+    aws_s3_bucket_policy.stage_log_bucket_policy,
+    aws_s3_bucket_policy.dev_log_bucket_policy,
+    aws_s3_bucket_policy.soc_athena_results_bucket_policy
+  ]
+
+  tags = {
+    Name = "fin-soc-cloudwatch-logs-export"
+  }
+}
+
+resource "aws_cloudwatch_event_target" "cloudwatch_logs_export_lambda" {
+  rule      = aws_cloudwatch_event_rule.cloudwatch_logs_export.name
+  target_id = "soc-cloudwatch-logs-export"
+  arn       = aws_lambda_function.cloudwatch_logs_export.arn
+}
+
+resource "aws_lambda_permission" "allow_cloudwatch_logs_export_eventbridge" {
+  statement_id  = "AllowCloudWatchLogsExportEventBridge"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.cloudwatch_logs_export.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.cloudwatch_logs_export.arn
 }
 
 # ============================================================================
@@ -2154,6 +2449,38 @@ resource "aws_athena_named_query" "create_vpc_flow_logs_table" {
   SQL
 }
 
+resource "aws_athena_named_query" "create_workload_cloudwatch_export_tables" {
+  name        = "create-workload-cloudwatch-export-tables"
+  workgroup   = aws_athena_workgroup.soc_logs.name
+  database    = aws_glue_catalog_database.soc_logs.name
+  description = "Template query to create raw CloudWatch Logs export tables for Prod, Staging, and Dev buckets"
+  query       = <<-SQL
+    CREATE EXTERNAL TABLE IF NOT EXISTS prod_cloudwatch_exports (
+      raw_line string
+    )
+    ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.RegexSerDe'
+    WITH SERDEPROPERTIES ('input.regex'='^(.*)$')
+    STORED AS TEXTFILE
+    LOCATION 's3://${aws_s3_bucket.soc_audit_log_bucket.id}/cloudwatch-exports/';
+
+    CREATE EXTERNAL TABLE IF NOT EXISTS stg_cloudwatch_exports (
+      raw_line string
+    )
+    ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.RegexSerDe'
+    WITH SERDEPROPERTIES ('input.regex'='^(.*)$')
+    STORED AS TEXTFILE
+    LOCATION 's3://${aws_s3_bucket.stage_log_bucket.id}/cloudwatch-exports/';
+
+    CREATE EXTERNAL TABLE IF NOT EXISTS dev_cloudwatch_exports (
+      raw_line string
+    )
+    ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.RegexSerDe'
+    WITH SERDEPROPERTIES ('input.regex'='^(.*)$')
+    STORED AS TEXTFILE
+    LOCATION 's3://${aws_s3_bucket.dev_log_bucket.id}/cloudwatch-exports/';
+  SQL
+}
+
 resource "aws_athena_named_query" "recent_cloudtrail_errors" {
   name        = "recent-cloudtrail-errors"
   workgroup   = aws_athena_workgroup.soc_logs.name
@@ -2197,49 +2524,6 @@ resource "aws_athena_named_query" "monthly_cloudtrail_activity_summary" {
 }
 
 # ============================================================================
-# GuardDuty (위협 탐지)
-# ============================================================================
-
-resource "aws_guardduty_detector" "main" {
-  count  = var.enable_guardduty ? 1 : 0
-  enable = true
-
-  datasources {
-    s3_logs {
-      enable = true
-    }
-    kubernetes {
-      audit_logs {
-        enable = true
-      }
-    }
-  }
-
-  tags = {
-    Name = "fin-audit-guardduty"
-  }
-}
-
-# ============================================================================
-# Security Hub (중앙 보안 대시보드)
-# ============================================================================
-
-resource "aws_securityhub_account" "main" {
-  count = var.enable_securityhub ? 1 : 0
-}
-
-resource "aws_securityhub_standards_subscription" "cis" {
-  count         = var.enable_securityhub ? 1 : 0
-  standards_arn = "arn:aws:securityhub:${data.aws_region.current.name}::standards/aws-foundational-security-best-practices/v/1.0.0"
-  depends_on    = [aws_securityhub_account.main]
-}
-
-resource "aws_securityhub_standards_subscription" "pci" {
-  count         = var.enable_securityhub ? 1 : 0
-  standards_arn = "arn:aws:securityhub:${data.aws_region.current.name}::standards/pci-dss/v/3.2.1"
-  depends_on    = [aws_securityhub_account.main]
-}
-
 # 현재 region 정보
 data "aws_region" "current" {
 }

@@ -8,24 +8,14 @@ output "audit_vpc_cidr" {
   value       = aws_vpc.audit_vpc.cidr_block
 }
 
-output "audit_bastion_subnet_2a_id" {
-  description = "Audit Bastion Subnet 2a ID"
-  value       = aws_subnet.bastion_subnet_2a.id
+output "audit_peering_subnet_2a_id" {
+  description = "Audit Peering Subnet 2a ID"
+  value       = aws_subnet.peering_subnet_2a.id
 }
 
-output "audit_bastion_subnet_2c_id" {
-  description = "Audit Bastion Subnet 2c ID"
-  value       = aws_subnet.bastion_subnet_2c.id
-}
-
-output "audit_tgw_subnet_2a_id" {
-  description = "Audit TGW Subnet 2a ID"
-  value       = aws_subnet.tgw_subnet_2a.id
-}
-
-output "audit_tgw_subnet_2c_id" {
-  description = "Audit TGW Subnet 2c ID"
-  value       = aws_subnet.tgw_subnet_2c.id
+output "audit_peering_subnet_2c_id" {
+  description = "Audit Peering Subnet 2c ID"
+  value       = aws_subnet.peering_subnet_2c.id
 }
 
 output "s3_cmk_arn" {
@@ -38,14 +28,14 @@ output "soc_audit_log_bucket_name" {
   value       = aws_s3_bucket.soc_audit_log_bucket.id
 }
 
-output "dev_log_bucket_name" {
-  description = "Development log bucket name"
-  value       = aws_s3_bucket.dev_log_bucket.id
-}
-
 output "stage_log_bucket_name" {
   description = "Staging log bucket name"
   value       = aws_s3_bucket.stage_log_bucket.id
+}
+
+output "dev_log_bucket_name" {
+  description = "Development log bucket name"
+  value       = aws_s3_bucket.dev_log_bucket.id
 }
 
 output "soc_athena_results_bucket_name" {
@@ -53,14 +43,14 @@ output "soc_athena_results_bucket_name" {
   value       = aws_s3_bucket.soc_athena_results_bucket.id
 }
 
-output "bastion_instance_id" {
-  description = "Bastion EC2 Instance ID"
-  value       = aws_instance.bastion.id
-}
-
-output "bastion_2c_instance_id" {
-  description = "Bastion EC2 Instance ID in 2c"
-  value       = aws_instance.bastion_2c.id
+output "cloudwatch_logs_export_destinations" {
+  description = "S3 destinations prepared for workload CloudWatch Logs export tasks"
+  value = {
+    prod = "s3://${aws_s3_bucket.soc_audit_log_bucket.id}/cloudwatch-exports/"
+    stg  = "s3://${aws_s3_bucket.stage_log_bucket.id}/cloudwatch-exports/"
+    dev  = "s3://${aws_s3_bucket.dev_log_bucket.id}/cloudwatch-exports/"
+    soc  = "s3://${aws_s3_bucket.soc_athena_results_bucket.id}/soc-logs/cloudwatch-exports/"
+  }
 }
 
 # ============================================================================
@@ -129,6 +119,26 @@ output "monthly_audit_report_lambda_name" {
   value       = aws_lambda_function.monthly_audit_report.function_name
 }
 
+output "cloudwatch_logs_export_lambda_name" {
+  description = "Central SOC Lambda function that starts CloudWatch Logs export tasks"
+  value       = aws_lambda_function.cloudwatch_logs_export.function_name
+}
+
+output "cloudwatch_logs_export_schedule" {
+  description = "EventBridge schedule expression for the central CloudWatch Logs export Lambda"
+  value       = aws_cloudwatch_event_rule.cloudwatch_logs_export.schedule_expression
+}
+
+output "cloudwatch_logs_export_assume_role_arns" {
+  description = "Workload account role ARNs that must trust the SOC CloudWatch Logs export Lambda role"
+  value       = local.cloudwatch_export_role_arns
+}
+
+output "cloudwatch_logs_export_lambda_role_arn" {
+  description = "SOC Lambda execution role ARN to allow in workload account trust policies"
+  value       = aws_iam_role.cloudwatch_logs_export_lambda.arn
+}
+
 output "monthly_audit_report_s3_prefix" {
   description = "S3 prefix where monthly SOC audit reports are archived"
   value       = "s3://${aws_s3_bucket.soc_athena_results_bucket.id}/monthly-audit/"
@@ -148,50 +158,7 @@ output "service_log_intake_manifest_s3_uri" {
 # Routing Outputs
 # ============================================================================
 
-output "bastion_route_table_id" {
-  description = "Bastion Subnet Route Table ID"
-  value       = aws_route_table.bastion_rt.id
-}
-
-output "tgw_route_table_id" {
-  description = "TGW Subnet Route Table ID"
-  value       = aws_route_table.tgw_rt.id
-}
-
-# ============================================================================
-# GuardDuty Outputs
-# ============================================================================
-
-output "guardduty_detector_id" {
-  description = "GuardDuty Detector ID"
-  value       = var.enable_guardduty ? aws_guardduty_detector.main[0].id : null
-}
-
-# ============================================================================
-# Security Hub Outputs
-# ============================================================================
-
-output "securityhub_status" {
-  description = "Security Hub Status"
-  value       = var.enable_securityhub ? "Enabled with CIS and PCI DSS standards" : "Disabled"
-}
-
-output "bastion_public_ip" {
-  description = "Bastion Public IP Address"
-  value       = aws_instance.bastion.public_ip
-}
-
-output "bastion_2c_public_ip" {
-  description = "Bastion Public IP Address in 2c"
-  value       = aws_instance.bastion_2c.public_ip
-}
-
-output "bastion_security_group_id" {
-  description = "Bastion Security Group ID"
-  value       = aws_security_group.bastion_sg.id
-}
-
-output "internet_gateway_id" {
-  description = "Internet Gateway ID"
-  value       = aws_internet_gateway.audit_igw.id
+output "peering_route_table_id" {
+  description = "Peering Subnet Route Table ID"
+  value       = aws_route_table.peering_rt.id
 }
