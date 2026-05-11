@@ -90,3 +90,16 @@ resource "helm_release" "alb_controller" {
   # EKS 클러스터가 완전히 만들어진 다음에 실행되도록 의존성 부여
   depends_on = [module.prod_eks]
 }
+
+module "prod_waf" {
+  source   = "./modules/waf"
+  env_name = var.env_name
+  alb_arn  = module.prod_alb.alb_arn
+}
+
+module "prod_route53" {
+  source       = "./modules/route53"
+  env_name     = var.env_name
+  alb_dns_name = module.prod_alb.alb_dns_name
+  alb_zone_id  = module.prod_alb.alb_zone_id
+}
