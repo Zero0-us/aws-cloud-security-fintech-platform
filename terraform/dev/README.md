@@ -49,7 +49,8 @@ Internet
 | `alb.tf` | ALB, 타겟 그룹, HTTP 리스너 |
 | `vpc_peering.tf` | Dev → Security/Audit VPC 피어링 + 라우팅 |
 | `outputs.tf` | VPC ID, EKS 엔드포인트, RDS 주소 등 출력 |
-| `vpn-instance.tf` | Corp VPN 연결용 EC2, EIP, 보안그룹, IAM Role |
+| `vpn-instance.tf` | Corp VPN 연결용 EC2 (Libreswan), EIP, 보안그룹, IAM Role |
+| `iam.tf` | 비즈니스 IAM Role (System-Admin-Role, Dev-Manager-Role) |
 
 ## 네트워크 설계
 
@@ -88,6 +89,10 @@ Internet
 
 3. **VPC 피어링 수락**
    - `vpc_peering.tf`에서 피어링 요청 생성 후, **Security/Audit 계정**(399707826519)에서 수락 필요
+
+4. **Corp 계정 ID 입력** (IAM Role 사용 시)
+   - `iam.tf`의 `corp_account_id` 변수에 Corp AWS 계정 ID 입력
+   - Corp 계정 apply 후 `iam.tf`의 AssumeRole 정책에서 이 Dev 계정 IAM Role을 허용해야 함
 
 ## 사용법
 
@@ -140,7 +145,7 @@ Corp(본사)와 Site-to-Site VPN 연결을 위한 EC2 기반 구성입니다.
 
 | 항목 | 값 |
 |------|-----|
-| VPN EC2 | `fin-dev-vpn-instance` |
+| VPN EC2 | `fin-dev-vpn-ec2` |
 | EIP | `terraform output vpn_fixed_ip` |
 | Corp CIDR | `192.168.0.0/16` |
 | PSK | 노션 참고 |
@@ -157,9 +162,26 @@ aws ssm start-session --target <인스턴스ID>
 
 # VPN 상태 확인
 sudo ipsec status
+```
 
 성공 시:
-   ```bash
-   "corp-vpn": STATE_V2_ESTABLISHED_IKE_SA
-   "corp-vpn": STATE_V2_ESTABLISHED_CHILD_SA
-   ```
+```
+"corp-vpn": STATE_V2_ESTABLISHED_IKE_SA
+"corp-vpn": STATE_V2_ESTABLISHED_CHILD_SA
+```
+
+## IAM Role
+
+Corp 계정을 IAM Hub로 사용하는 Cross-account 역할 위임 구성입니다.
+
+| Role 이름 | 정책 | 신뢰 주체 |
+|-----------|------|-----------|
+| `System-Admin-Role` | AdministratorAccess | Corp 계정 root (MFA 필수) |
+| `Dev-Manager-Role` | PowerUserAccess | Corp 계정 root (MFA 필수) |
+
+Corp 계정의 IAM 사용자가 `sts:AssumeRole`로 이 Dev 계정의 Role을 수임합니다.
+
+### Apply 순서
+
+1. Dev 계정 `iam.tf` apply → Role 생성
+2. Corp 계정 `iam.tf` apply → IAM User + AssumeRole 정책 생성

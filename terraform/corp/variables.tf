@@ -79,3 +79,47 @@ variable "target_accounts" {
     }
   }
 }
+
+# ============================================================
+# IAM 계정 ID (Role ARN 구성용)
+# ============================================================
+variable "prod_account_id" {
+  description = "Prod AWS 계정 ID"
+  type        = string
+  default     = ""
+}
+
+variable "dev_account_id" {
+  description = "Dev AWS 계정 ID"
+  type        = string
+  default     = ""
+}
+
+variable "soc_account_id" {
+  description = "SOC AWS 계정 ID"
+  type        = string
+  default     = ""
+}
+
+variable "stg_account_id" {
+  description = "Stg AWS 계정 ID"
+  type        = string
+  default     = ""
+}
+
+# ============================================================
+# IAM Users
+# ============================================================
+variable "iam_users" {
+  description = "Corp 계정 IAM 사용자 목록 및 역할 매핑"
+  type = map(object({
+    roles = list(string) # "system_admin" | "prod_viewer" | "dev_manager" | "security_audit"
+  }))
+  default = {
+    # 예시 (실제 사용자로 교체)
+    # "hong.gildong" = { roles = ["system_admin"] }
+    # "kim.cheolsu"  = { roles = ["prod_viewer"] }
+    # "lee.younghee" = { roles = ["dev_manager"] }
+    # "park.audit"   = { roles = ["security_audit"] }
+  }
+}

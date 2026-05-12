@@ -13,7 +13,8 @@ SOC / Audit Account
 ├─ Audit VPC
 ├─ Peering 연결용 Subnet 2a/2c
 ├─ Route Tables
-├─ VPN EC2 (Corp 연결용)
+├─ VPN EC2 (Corp 연결용, fin-soc-vpn-ec2)
+├─ IAM Role (System-Admin-Role, Security-Audit-Role)
 ├─ KMS CMK
 ├─ S3 Buckets
 │  ├─ SOC audit log bucket
@@ -381,13 +382,30 @@ Prod/Dev/Stage route table
 → SOC VPC Peering Connection
 ```
 
+## IAM Role
+
+Corp 계정을 IAM Hub로 사용하는 Cross-account 역할 위임 구성입니다.
+
+| Role 이름 | 정책 | 신뢰 주체 |
+|-----------|------|-----------|
+| `System-Admin-Role` | AdministratorAccess | Corp 계정 root (MFA 필수) |
+| `Security-Audit-Role` | SecurityAudit + ReadOnlyAccess | Corp 계정 root (MFA 필수) |
+
+Corp 계정의 IAM 사용자가 `sts:AssumeRole`로 이 SOC 계정의 Role을 수임합니다.
+`corp_account_id` 변수에 Corp AWS 계정 ID를 입력해야 합니다.
+
+### Apply 순서
+
+1. SOC 계정 `iam.tf` apply → Role 생성
+2. Corp 계정 `iam.tf` apply → IAM User + AssumeRole 정책 생성
+
 ## Corp VPN 연결
 
 Corp(본사)와 Site-to-Site VPN 연결을 위한 EC2 기반 구성이다.
 
 | 항목 | 값 |
 |------|-----|
-| VPN EC2 | `fin-soc-vpn-instance` |
+| VPN EC2 | `fin-soc-vpn-ec2` |
 | EIP | `terraform output vpn_fixed_ip` |
 | Corp CIDR | `192.168.0.0/16` |
 | PSK | 노션 참고 |

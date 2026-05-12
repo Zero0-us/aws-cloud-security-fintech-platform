@@ -61,5 +61,11 @@ variable "node_group_name" {
 variable "eks_access_entries" {
   description = "EKS 클러스터 권한 명단"
   type        = any
-  default     = {} 
+  default     = {}
+}
+
+variable "corp_account_id" {
+  description = "Corp AWS 계정 ID (IAM Role 신뢰 주체)"
+  type        = string
+  default     = ""
 }
