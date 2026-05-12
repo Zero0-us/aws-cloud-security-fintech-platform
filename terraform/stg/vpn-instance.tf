@@ -16,12 +16,15 @@
 #
 # ============================================================
 
+#============================================================
 # 1. VPN 인스턴스용 보안 그룹
+#============================================================
 resource "aws_security_group" "vpn" {
   name        = "fin-stg-vpn-sg"
   description = "Security group for VPN instance"
   vpc_id      = aws_vpc.stg.id
 
+  # IKE (UDP 500)
   ingress {
     from_port   = 500
     to_port     = 500
@@ -30,6 +33,7 @@ resource "aws_security_group" "vpn" {
     description = "IKE"
   }
 
+  # NAT-T (UDP 4500)
   ingress {
     from_port   = 4500
     to_port     = 4500
@@ -38,6 +42,7 @@ resource "aws_security_group" "vpn" {
     description = "NAT-T"
   }
 
+  # ESP (Protocol 50)
   ingress {
     from_port   = -1
     to_port     = -1
@@ -46,6 +51,7 @@ resource "aws_security_group" "vpn" {
     description = "ESP"
   }
 
+  # Corp 네트워크에서 모든 트래픽 허용
   ingress {
     from_port   = 0
     to_port     = 0
@@ -54,6 +60,16 @@ resource "aws_security_group" "vpn" {
     description = "From Corp network"
   }
 
+  # 내부 VPC에서 모든 트래픽 허용 (VPN 통과 트래픽)
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["10.40.0.0/16"]
+    description = "From internal VPC"
+  }
+
+  # SSH (관리용)
   ingress {
     from_port   = 22
     to_port     = 22
@@ -62,6 +78,7 @@ resource "aws_security_group" "vpn" {
     description = "SSH"
   }
 
+  # ICMP (Ping 테스트용)
   ingress {
     from_port   = -1
     to_port     = -1
@@ -70,6 +87,7 @@ resource "aws_security_group" "vpn" {
     description = "ICMP"
   }
 
+  # Outbound 모든 트래픽 허용
   egress {
     from_port   = 0
     to_port     = 0
@@ -82,16 +100,20 @@ resource "aws_security_group" "vpn" {
   }
 }
 
-# 2. VPN용 EIP (Terraform에서 생성)
-resource "aws_eip" "vpn_fixed" {
+#============================================================
+# 2. VPN용 EIP (고정 IP)
+#============================================================
+resource "aws_eip" "vpn" {
   domain = "vpc"
 
   tags = {
-    Name = "fin-stg-vpn-eip-fixed"
+    Name = "fin-stg-vpn-eip"
   }
 }
 
+#============================================================
 # 3. Amazon Linux 2023 AMI
+#============================================================
 data "aws_ami" "amazon_linux" {
   most_recent = true
   owners      = ["amazon"]
@@ -107,7 +129,9 @@ data "aws_ami" "amazon_linux" {
   }
 }
 
+#============================================================
 # 4. VPN EC2 인스턴스
+#============================================================
 resource "aws_instance" "vpn" {
   ami                         = data.aws_ami.amazon_linux.id
   instance_type               = "t3.micro"
@@ -119,41 +143,60 @@ resource "aws_instance" "vpn" {
 
   user_data = <<-EOF
     #!/bin/bash
+    # SSM Agent 설치
     dnf install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
     systemctl enable amazon-ssm-agent
     systemctl start amazon-ssm-agent
+    
+    # Libreswan 설치
     dnf install -y libreswan
     systemctl enable ipsec
+    
+    # IP 포워딩 활성화
     echo "net.ipv4.ip_forward = 1" >> /etc/sysctl.conf
+    echo "net.ipv4.conf.all.accept_redirects = 0" >> /etc/sysctl.conf
+    echo "net.ipv4.conf.all.send_redirects = 0" >> /etc/sysctl.conf
     sysctl -p
   EOF
 
   tags = {
-    Name = "fin-stg-vpn-instance"
+    Name = "fin-stg-vpn-ec2"
+  }
+
+  lifecycle {
+    ignore_changes = [ami]
   }
 }
 
+#============================================================
 # 5. EIP를 VPN 인스턴스에 연결
+#============================================================
 resource "aws_eip_association" "vpn" {
   instance_id   = aws_instance.vpn.id
-  allocation_id = aws_eip.vpn_fixed.id
+  allocation_id = aws_eip.vpn.id
 }
 
+#============================================================
 # 6. Corp 대역 라우팅 - Private RT
+#============================================================
 resource "aws_route" "to_corp_pri" {
   route_table_id         = aws_route_table.pri.id
   destination_cidr_block = "192.168.0.0/16"
   network_interface_id   = aws_instance.vpn.primary_network_interface_id
 }
 
+#============================================================
 # 7. Corp 대역 라우팅 - DB RT
+#============================================================
 resource "aws_route" "to_corp_db" {
   route_table_id         = aws_route_table.db.id
   destination_cidr_block = "192.168.0.0/16"
   network_interface_id   = aws_instance.vpn.primary_network_interface_id
 }
 
+#============================================================
 # 8. SSM용 IAM Role
+#============================================================
 resource "aws_iam_role" "vpn_ssm" {
   name = "fin-stg-vpn-ssm-role"
 
@@ -167,6 +210,10 @@ resource "aws_iam_role" "vpn_ssm" {
       }
     }]
   })
+
+  tags = {
+    Name = "fin-stg-vpn-ssm-role"
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "vpn_ssm" {

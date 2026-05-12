@@ -68,7 +68,20 @@ output "peering_info" {
 # 현재 AWS 계정 ID 가져오기
 data "aws_caller_identity" "current" {}
 
-# VPN 관련 출력
+#============================================================
+# VPN Outputs
+#============================================================
 output "vpn_fixed_ip" {
-  value = aws_eip.vpn_fixed.public_ip
+  description = "VPN Instance Elastic IP - Corp에 전달"
+  value       = aws_eip.vpn.public_ip
+}
+
+output "vpn_instance_id" {
+  description = "VPN Instance ID for SSM access"
+  value       = aws_instance.vpn.id
+}
+
+output "vpn_private_ip" {
+  description = "VPN Instance Private IP"
+  value       = aws_instance.vpn.private_ip
 }
