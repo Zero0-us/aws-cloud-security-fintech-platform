@@ -67,3 +67,8 @@ output "peering_info" {
 
 # 현재 AWS 계정 ID 가져오기
 data "aws_caller_identity" "current" {}
+
+# VPN 관련 출력
+output "vpn_fixed_ip" {
+  value = aws_eip.vpn_fixed.public_ip
+}

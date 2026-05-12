@@ -28,10 +28,13 @@ Internet
 │  └─────────────────────────────────────┘                   │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
-         │
          │ VPC Peering
          ▼
   Security/Audit VPC (10.10.0.0/16)
+         │
+         │ IPsec VPN
+         ▼
+  Corp VPC (192.168.0.0/16)
 ```
 
 ## 파일 구조
@@ -46,6 +49,7 @@ Internet
 | `alb.tf` | ALB, 타겟 그룹, HTTP 리스너 |
 | `vpc_peering.tf` | Dev → Security/Audit VPC 피어링 + 라우팅 |
 | `outputs.tf` | VPC ID, EKS 엔드포인트, RDS 주소 등 출력 |
+| `vpn-instance.tf` | Corp VPN 연결용 EC2, EIP, 보안그룹, IAM Role |
 
 ## 네트워크 설계
 
@@ -128,3 +132,34 @@ terraform output
 | Security/Audit | 10.10.0.0/16 | 보안 로그 수집, Bastion |
 | **Dev (이 코드)** | **10.30.0.0/16** | **개발/테스트 환경** |
 | Prod | 10.20.0.0/16 | 실제 운영 환경 |
+
+
+## Corp VPN 연결
+
+Corp(본사)와 Site-to-Site VPN 연결을 위한 EC2 기반 구성입니다.
+
+| 항목 | 값 |
+|------|-----|
+| VPN EC2 | `fin-dev-vpn-instance` |
+| EIP | `terraform output vpn_fixed_ip` |
+| Corp CIDR | `192.168.0.0/16` |
+| PSK | 노션 참고 |
+
+### 설정 방법
+
+1. `terraform apply` 후 `vpn_fixed_ip` 출력값을 Corp에 전달
+2. Corp에서 VPN IP, PSK 전달받음
+3. SSM 접속 후 Libreswan 설정
+
+```bash
+# SSM 접속
+aws ssm start-session --target <인스턴스ID>
+
+# VPN 상태 확인
+sudo ipsec status
+
+성공 시:
+   ```bash
+   "corp-vpn": STATE_V2_ESTABLISHED_IKE_SA
+   "corp-vpn": STATE_V2_ESTABLISHED_CHILD_SA
+   ```

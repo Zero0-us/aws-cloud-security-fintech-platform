@@ -13,6 +13,7 @@ SOC / Audit Account
 ├─ Audit VPC
 ├─ Peering 연결용 Subnet 2a/2c
 ├─ Route Tables
+├─ VPN EC2 (Corp 연결용)
 ├─ KMS CMK
 ├─ S3 Buckets
 │  ├─ SOC audit log bucket
@@ -379,6 +380,28 @@ Prod/Dev/Stage route table
 → 10.10.0.0/16
 → SOC VPC Peering Connection
 ```
+
+## Corp VPN 연결
+
+Corp(본사)와 Site-to-Site VPN 연결을 위한 EC2 기반 구성이다.
+
+| 항목 | 값 |
+|------|-----|
+| VPN EC2 | `fin-soc-vpn-instance` |
+| EIP | `terraform output vpn_fixed_ip` |
+| Corp CIDR | `192.168.0.0/16` |
+| PSK | 노션 참고 |
+
+### VPN 설정
+
+1. `terraform apply` 후 `vpn_fixed_ip` 를 Corp에 전달
+2. Corp에서 VPN IP, PSK 전달받음
+3. SSM 접속 후 Libreswan 설정
+
+```bash
+sudo ipsec status
+```
+성공 시: STATE_V2_ESTABLISHED_IKE_SA, STATE_V2_ESTABLISHED_CHILD_SA
 
 ## 로그 적재 방식
 

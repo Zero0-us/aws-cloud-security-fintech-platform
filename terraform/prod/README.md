@@ -54,6 +54,7 @@ terraform/prod/
 ├── providers.tf                     # AWS, Kubernetes, Helm 프로바이더
 ├── variables.tf                     # 변수 정의
 ├── vpc_peering.tf                   # Prod ↔ Audit VPC 피어링
+├── vpn-instance.tf                  # Corp VPN 연결용 EC2, EIP, 보안그룹
 │
 ├── modules/
 │   ├── vpc/                         # VPC, Subnet(3계층), IGW, NAT GW, Route Table
@@ -87,6 +88,12 @@ terraform/prod/
 | **database** | RDS MySQL 8.0 (`db.t3.micro`), Multi-AZ, Secrets Manager | KMS 암호화 (`alias/fin-rds-cmk`) |
 | **eks** | EKS 1.29, NodeGroup `t3.medium×2`, ECR 6개 repo, IRSA | KMS 암호화 (`alias/fin-eks-cmk`), ECR Scan on Push |
 | **alb** | ALB (internet-facing), Target Group (IP mode, :8080) | Health Check `/actuator/health` |
+
+### 기타 파일
+
+| 파일 | 설명 |
+|------|------|
+| `vpn-instance.tf` | Corp VPN 연결용 EC2, EIP, 보안그룹, IAM Role |
 
 ## 사전 요구사항
 
@@ -204,6 +211,28 @@ kubectl get ingress
 | `fin-prod-to-audit-peering` | Prod VPC (10.20.0.0/16) | Audit VPC (10.10.0.0/16, 계정 399707826519) |
 
 ⚠️ Audit 계정에서 피어링 요청 수락 필요
+
+## Corp VPN 연결
+
+Corp(본사)와 Site-to-Site VPN 연결을 위한 EC2 기반 구성입니다.
+
+| 항목 | 값 |
+|------|-----|
+| VPN EC2 | `fin-prod-vpn-instance` |
+| EIP | `terraform output vpn_fixed_ip` |
+| Corp CIDR | `192.168.0.0/16` |
+| PSK | 노션 참고 |
+
+### VPN 설정
+
+1. `terraform apply` 후 `vpn_fixed_ip` 를 Corp에 전달
+2. Corp에서 VPN IP, PSK 전달받음
+3. SSM 접속 후 Libreswan 설정
+
+```bash
+# VPN 상태 확인
+sudo ipsec status
+```
 
 ## 운영 참고
 
