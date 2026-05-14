@@ -1,0 +1,20 @@
+# ============================================================
+# configmap.yaml — 공통 환경 설정 (비민감 정보)
+# ============================================================
+# JOA 오픈뱅킹 서비스용 공통 설정.
+# DB_HOST는 Terraform apply 후 RDS 엔드포인트로 교체 필수!
+#   terraform output -raw rds_endpoint
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fintech-config
+data:
+  # RDS 엔드포인트 (⚠️ terraform apply 후 실제 값으로 교체)
+  DB_HOST: "fin-stg-db.cluster.ap-northeast-2.rds.amazonaws.com"
+  DB_PORT: "3306"
+  DB_NAME: "joa"
+
+  # Redis (K8s 내부 Service DNS)
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
