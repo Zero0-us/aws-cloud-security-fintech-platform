@@ -20,7 +20,7 @@ terraform {
 
 provider "aws" {
   region  = var.region
-  profile = "Lee-role"
+  profile = "default"
 
   default_tags {
     tags = {
@@ -30,25 +30,18 @@ provider "aws" {
   }
 }
 
-data "aws_eks_cluster_auth" "this" {
-  name = module.prod_eks.cluster_name
-}
+## Phase 1: EKS가 생성된 후 아래 주석을 해제하세요
+# data "aws_eks_cluster_auth" "this" {
+#   name = module.prod_eks.cluster_name
+# }
 
 provider "kubernetes" {
-  host                   = module.prod_eks.cluster_endpoint
-  cluster_ca_certificate = base64decode(module.prod_eks.cluster_certificate_authority_data)
-  token                  = data.aws_eks_cluster_auth.this.token
+  host = "https://localhost"
 }
 
 provider "helm" {
   kubernetes {
-    host                   = module.prod_eks.cluster_endpoint
-    cluster_ca_certificate = base64decode(module.prod_eks.cluster_certificate_authority_data)
-    exec {
-      api_version = "client.authentication.k8s.io/v1beta1"
-      args        = ["eks", "get-token", "--cluster-name", module.prod_eks.cluster_name, "--profile", "Lee-role"]
-      command     = "aws"
-    }
+    host = "https://localhost"
   }
 }
 
@@ -62,8 +55,4 @@ output "deploy_account_id" {
   value       = data.aws_caller_identity.current.account_id
 }
 
-variable "node_group_name" {
-  type = string
-}
 
- 

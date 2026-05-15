@@ -1,21 +1,4 @@
-# ============================================================
-# ingress.yaml — ALB Ingress (Prod) — JOA 서비스 라우팅
-# ============================================================
-# ALB Ingress Controller가 이 리소스를 읽고
-# ALB에 path 기반 라우팅 규칙을 등록.
-#
-# 트래픽 흐름:
-#   인터넷 → ALB (:80) → Ingress Controller → 각 Service (ClusterIP)
-#
-#   /                    → bank-web:3000         (뱅킹 웹)
-#   /admin               → admin-frontend:3000   (관리자 대시보드)
-#   /docs                → docs-frontend:3000    (API 문서)
-#   /v1/*                → openapi-backend:8080  (오픈뱅킹 API)
-#   /member/*            → bank-backend:8080     (회원/로그인)
-#   /admin/api/*         → admin-backend:8080    (관리자 API)
-#   /actuator/health     → openapi-backend:8080  (헬스체크)
-
-apiVersion: networking.k8s.io/v1
+﻿apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: fintech-ingress
@@ -23,82 +6,25 @@ metadata:
     kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-    # 헬스체크 설정 (Spring Boot Actuator)
-    alb.ingress.kubernetes.io/healthcheck-path: /actuator/health
+    alb.ingress.kubernetes.io/healthcheck-path: /healthz
     alb.ingress.kubernetes.io/healthcheck-interval-seconds: "30"
     alb.ingress.kubernetes.io/healthcheck-timeout-seconds: "5"
     alb.ingress.kubernetes.io/healthy-threshold-count: "2"
     alb.ingress.kubernetes.io/unhealthy-threshold-count: "2"
-    # 리스너 포트
+    alb.ingress.kubernetes.io/success-codes: "200"
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
-    # 태그
-    alb.ingress.kubernetes.io/tags: "Name=fin-prod-alb,Project=fintech"
+    alb.ingress.kubernetes.io/wafv2-acl-arn: "arn:aws:wafv2:ap-northeast-2:364585378962:regional/webacl/fin-prod-waf/de296d43-db45-46c0-b132-98eca9674209"
+    alb.ingress.kubernetes.io/load-balancer-attributes: "access_logs.s3.enabled=true,access_logs.s3.bucket=fin-prod-log-s3-364585378962-ap-northeast-2,access_logs.s3.prefix=alb,routing.http.drop_invalid_header_fields.enabled=true"
+    alb.ingress.kubernetes.io/tags: "Name=fin-prod-alb,Project=fintech,Service=vuln-bank"
 spec:
   ingressClassName: alb
   rules:
     - http:
         paths:
-          # ── 관리자 API (admin-backend) ──
-          # /admin/api 를 먼저 매칭해야 /admin 프론트와 구분됨
-          - path: /admin/api
-            pathType: Prefix
-            backend:
-              service:
-                name: admin-backend
-                port:
-                  number: 8080
-
-          # ── 관리자 대시보드 (admin-frontend) ──
-          - path: /admin
-            pathType: Prefix
-            backend:
-              service:
-                name: admin-frontend
-                port:
-                  number: 3000
-
-          # ── API 문서 (docs-frontend) ──
-          - path: /docs
-            pathType: Prefix
-            backend:
-              service:
-                name: docs-frontend
-                port:
-                  number: 3000
-
-          # ── 오픈뱅킹 API (openapi-backend) ──
-          - path: /v1
-            pathType: Prefix
-            backend:
-              service:
-                name: openapi-backend
-                port:
-                  number: 8080
-
-          # ── 회원/로그인 API (bank-backend) ──
-          - path: /member
-            pathType: Prefix
-            backend:
-              service:
-                name: bank-backend
-                port:
-                  number: 8080
-
-          # ── 헬스체크 ──
-          - path: /actuator/health
-            pathType: Exact
-            backend:
-              service:
-                name: openapi-backend
-                port:
-                  number: 8080
-
-          # ── 뱅킹 웹 (bank-web) — 기본 루트 ──
-          # 가장 마지막에 배치 (catch-all)
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: bank-web
+                name: vuln-bank
                 port:
-                  number: 3000
+                  number: 5000

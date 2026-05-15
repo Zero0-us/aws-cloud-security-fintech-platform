@@ -19,13 +19,10 @@ output "cluster_certificate_authority_data" {
   value       = module.eks.cluster_certificate_authority_data
 }
 
-## 3. IRSA (IAM Roles for Service Accounts) 정보
-output "alb_controller_role_arn" {
-  description = "ALB Controller가 AWS API를 호출하기 위해 사용할 IAM Role의 ARN (루트의 Helm 릴리즈에서 참조)"
-  value       = module.alb_controller_irsa_role.iam_role_arn
-
-  # FIXME: Role 생성 모듈이 실패하면 Helm 배포가 깨질 수 있으므로 의존성 체크 필수
-}
+## 3. IRSA — Phase 2에서 복원
+# output "alb_controller_role_arn" {
+#   value = module.alb_controller_irsa_role.iam_role_arn
+# }
 
 # ============================================================
 # 적용 후 검증 체크리스트

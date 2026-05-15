@@ -1,9 +1,10 @@
 variable "env_name" {
-  description = "환경 이름"
+  description = "Environment name."
   type        = string
 }
 
 variable "alb_arn" {
-  description = "WAF를 연결할 ALB의 ARN 주소"
+  description = "Optional ALB ARN for direct Terraform-managed WAF association. Leave null when WAF is attached by Kubernetes Ingress annotation."
   type        = string
+  default     = null
 }

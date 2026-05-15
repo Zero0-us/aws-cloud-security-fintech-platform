@@ -36,7 +36,7 @@ module "eks" {
   version = "~> 20.8"
 
   cluster_name    = var.cluster_name
-  cluster_version = "1.29"
+  cluster_version = var.cluster_version
 
   vpc_id     = var.vpc_id
   subnet_ids = var.private_subnets
@@ -45,7 +45,7 @@ module "eks" {
   cluster_endpoint_private_access = true
 
   # [P-C2] 커스텀 KMS CMK로 Secret 암호화 (alias/fin-eks-cmk)
-  create_kms_key            = false
+  create_kms_key = false
   cluster_encryption_config = {
     provider_key_arn = aws_kms_key.eks.arn
     resources        = ["secrets"]
@@ -63,7 +63,7 @@ module "eks" {
       name           = "fin-prod-nodegroup"
       instance_types = var.node_instance_types
       capacity_type  = var.node_capacity_type
-      
+
       min_size     = var.node_min_size
       max_size     = var.node_max_size
       desired_size = var.node_desired_size
@@ -86,11 +86,6 @@ resource "null_resource" "update_kubeconfig" {
   depends_on = [module.eks]
 
   provisioner "local-exec" {
-    command = <<EOT
-      aws eks update-kubeconfig \
-        --name ${module.eks.cluster_name} \
-        --region ${var.region} \
-        --profile Lee-role
-    EOT
+    command = "aws eks update-kubeconfig --name ${module.eks.cluster_name} --region ${var.region} --profile default"
   }
 }

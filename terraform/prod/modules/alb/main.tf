@@ -17,13 +17,13 @@ resource "aws_lb" "this" {
 #    JOA Spring Boot 백엔드 기본 포트: 8080
 resource "aws_lb_target_group" "this" {
   name        = "fin-${var.env_name}-tg"
-  port        = 8080    # Spring Boot 기본 포트
+  port        = 8080 # Spring Boot 기본 포트
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
   target_type = "ip" # EKS Pod로 직접 통신하기 위해 필수
 
   health_check {
-    path                = "/actuator/health"  # Spring Boot Actuator 헬스체크
+    path                = "/actuator/health" # Spring Boot Actuator 헬스체크
     protocol            = "HTTP"
     port                = "8080"
     matcher             = "200"

@@ -23,7 +23,7 @@ resource "aws_subnet" "private" {
   cidr_block        = var.private_subnets[count.index]
   availability_zone = var.azs[count.index]
   tags = {
-    Name = "fin-${var.env_name}-pri-sub-${substr(var.azs[count.index], -2, 2)}"
+    Name                                 = "fin-${var.env_name}-pri-sub-${substr(var.azs[count.index], -2, 2)}"
     "kubernetes.io/cluster/fin-prod-eks" = "shared" # EKS 클러스터 이름과 동일하게 매핑
     "kubernetes.io/role/internal-elb"    = "1"
   }
