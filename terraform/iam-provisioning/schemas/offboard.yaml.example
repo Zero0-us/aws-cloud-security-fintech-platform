@@ -1,0 +1,53 @@
+# ============================================================
+# IAM 프로비저닝 - 퇴사자 요청 스키마
+# 파일명 규칙: YYYY-MM-DD-username.yaml
+# 저장 경로: s3://fin-iam-provisioning-s3/requests/offboard/
+# ============================================================
+
+# 요청 메타데이터
+request_type: offboard
+request_id: REQ-2025-01-15-002
+
+# 사용자 정보
+user:
+  username: kim-cheolsu
+  email: kimcs@company.com
+  department: 인프라팀
+
+# 비활성화 설정
+deactivation:
+  target_accounts:             # 비활성화 대상 계정 (all 또는 목록)
+    - dev
+    - stg
+    - prod
+  actions:                     # 수행할 액션
+    - disable_console_access   # 콘솔 로그인 비활성화
+    - deactivate_access_keys   # Access Key 비활성화
+    - remove_mfa_devices       # MFA 디바이스 제거
+    - detach_all_policies      # 모든 정책 분리
+    - remove_from_groups       # 모든 그룹에서 제거
+  delete_user: false           # 사용자 삭제 여부 (false=비활성화만)
+
+# 일정
+schedule:
+  last_working_day: "2025-01-31"
+  deactivation_date: "2025-02-01"  # 실제 비활성화 실행일
+  deletion_date: "2025-05-01"      # 완전 삭제 예정일 (90일 후)
+
+# 인수인계
+handover:
+  backup_owner: park-younghee      # 업무 인수자
+  backup_owner_email: park@company.com
+  resources_transferred: true       # 리소스 이관 완료 여부
+
+# 요청 정보
+request:
+  requester: hr-admin
+  requester_email: hr@company.com
+  requested_at: "2025-01-15T14:30:00Z"
+  reason: 자발적 퇴사
+
+# 비고
+notes: |
+  - S3 버킷 소유권 이관 필요: fin-dev-data-bucket
+  - 진행 중 프로젝트: Project-Alpha (park-younghee 인수)

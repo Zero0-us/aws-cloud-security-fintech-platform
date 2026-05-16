@@ -1,0 +1,72 @@
+# ============================================================
+# YAML 스키마 검증 규칙
+# Lambda(request-parser)에서 검증 시 사용
+# ============================================================
+
+validation_rules:
+  # 공통 필수 필드
+  common:
+    required:
+      - request_type
+      - user.username
+      - user.email
+      - request.requester
+      - request.requested_at
+    
+  # 요청 타입별 필수 필드
+  onboard:
+    required:
+      - access.target_accounts
+      - access.roles
+      - request.effective_date
+    username_pattern: "^[a-z][a-z0-9-]{2,29}$"
+    
+  offboard:
+    required:
+      - deactivation.target_accounts
+      - deactivation.actions
+      - schedule.last_working_day
+      
+  modify:
+    required:
+      - changes.target_accounts
+      - request.reason
+    must_have_one_of:
+      - changes.remove
+      - changes.add
+
+# 허용값 목록
+allowed_values:
+  target_accounts:
+    - dev
+    - stg
+    - prod
+    - soc
+    - corp
+    
+  roles:
+    - System-Admin
+    - Security-Audit
+    - Prod-Viewer
+    - Dev-Manager
+    - CICD-Deploy
+    - Stg-Manager
+    - SOC-Analyst
+    - ReadOnly
+    
+  deactivation_actions:
+    - disable_console_access
+    - deactivate_access_keys
+    - delete_access_keys
+    - remove_mfa_devices
+    - detach_all_policies
+    - remove_from_groups
+    - delete_user
+
+# 에러 메시지
+error_messages:
+  missing_required: "{field} 필드는 필수입니다."
+  invalid_username: "username은 영문 소문자, 숫자, 하이픈만 허용 (3-30자)"
+  invalid_account: "{value}는 허용되지 않는 계정입니다. 허용: {allowed}"
+  invalid_role: "{value}는 존재하지 않는 Role입니다."
+  no_changes: "변경 요청에는 remove 또는 add 중 하나는 필수입니다."

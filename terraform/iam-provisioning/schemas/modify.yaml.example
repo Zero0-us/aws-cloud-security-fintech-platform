@@ -1,0 +1,61 @@
+# ============================================================
+# IAM 프로비저닝 - 권한 변경 요청 스키마
+# 파일명 규칙: YYYY-MM-DD-username.yaml
+# 저장 경로: s3://fin-iam-provisioning-s3/requests/modify/
+# ============================================================
+
+# 요청 메타데이터
+request_type: modify
+request_id: REQ-2025-01-15-003
+
+# 사용자 정보
+user:
+  username: park-younghee
+  email: park@company.com
+  department: 보안팀            # 변경 후 부서
+  previous_department: 개발팀   # 변경 전 부서
+
+# 권한 변경 내용
+changes:
+  target_accounts:
+    - dev
+    - prod
+    - soc
+    
+  # 제거할 권한
+  remove:
+    roles:
+      - Dev-Manager
+    policies: []
+    groups:
+      - dev-developers
+      
+  # 추가할 권한  
+  add:
+    roles:
+      - Security-Audit
+      - Prod-Viewer
+    policies: []
+    groups:
+      - security-team
+
+# 요청 정보
+request:
+  requester: security-admin
+  requester_email: security@company.com
+  requested_at: "2025-01-15T14:30:00Z"
+  effective_date: "2025-01-16"
+  reason: 부서 이동 - 개발팀 → 보안팀
+  
+# 승인 체인 (민감 권한 변경 시)
+approval_chain:
+  required_approvers:
+    - security-lead
+    - hr-admin
+  approved_by: []              # 승인 완료 시 자동 기록
+
+# 비고
+notes: |
+  - 보안팀 이동에 따른 권한 재설정
+  - Prod 쓰기 권한 제거, 읽기 권한만 유지
+  - SOC 계정 Security-Audit 권한 신규 부여

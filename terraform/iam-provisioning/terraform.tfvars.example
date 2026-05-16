@@ -1,0 +1,90 @@
+# ============================================================
+# IAM Provisioning Automation - Variables (예시)
+# 경로: terraform/iam-provisioning/terraform.tfvars.example
+# 
+# 📋 사용법:
+#   1. 이 파일을 복사: cp terraform.tfvars.example terraform.tfvars
+#   2. terraform.tfvars 파일을 본인 환경에 맞게 수정
+#   3. terraform apply 실행
+# 
+# ⚠️ 주의: terraform.tfvars는 .gitignore로 제외되어 있습니다 (시크릿 보호)
+# ============================================================
+
+# ============================================================
+# 기본 설정
+# ============================================================
+aws_region   = "ap-northeast-2"
+environment  = "prod"
+project_name = "fin-iam-provisioning"
+
+
+# ============================================================
+# Discord Webhook URL (필수)
+# ============================================================
+# 👉 본인의 Discord 채널 Webhook URL로 변경하세요
+# 
+# 생성 방법:
+#   1. Discord 서버 → 채널 우클릭 → "채널 편집"
+#   2. "연동" 탭 → "웹후크" → "새 웹후크"
+#   3. 웹후크 URL 복사
+discord_webhook_url = "https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN"
+
+
+# ============================================================
+# 대상 계정 ID (필수)
+# ============================================================
+# 👉 실제 AWS 계정 ID 12자리 숫자로 변경하세요
+#
+# 💡 단일 계정 테스트 시 (개인 계정):
+#    모든 값을 동일한 계정 ID로 설정
+#    예: dev = "123456789012", stg = "123456789012", ...
+#
+# 💡 멀티 계정 운영 시:
+#    각 환경별 실제 계정 ID 입력
+target_account_ids = {
+  dev  = "111111111111"  # 개발 환경 계정 ID
+  stg  = "222222222222"  # 스테이징 환경 계정 ID
+  prod = "333333333333"  # 프로덕션 환경 계정 ID
+  soc  = "444444444444"  # SOC(보안) 계정 ID
+  corp = "555555555555"  # 기업 본사 계정 ID
+}
+
+
+# ============================================================
+# 허용 IAM Role 화이트리스트
+# ============================================================
+# 👉 이 목록에 없는 역할은 자동 거부됩니다 (보안 강화)
+# 새 역할 추가 시 반드시 이 목록에도 추가하세요
+allowed_roles = [
+  "System-Admin",
+  "Security-Audit",
+  "Prod-Viewer",
+  "Dev-Manager",
+  "Stg-Manager",
+  "CICD-Deploy",
+  "SOC-Analyst",
+  "ReadOnly"
+]
+
+
+# ============================================================
+# Cross-Account Role 배포 여부
+# ============================================================
+# 💡 단일 계정 테스트 시: true
+#    → IAMProvisioningExecutorRole이 같은 계정에 생성됨
+#
+# 💡 멀티 계정 운영 시: 
+#    → SOC 계정 배포: false
+#    → 대상 계정(dev/stg/prod)에 별도 배포: true
+deploy_cross_account_role = false
+
+
+# ============================================================
+# SOC 계정 ID (Cross-Account Role 배포 시 필요)
+# ============================================================
+# 👉 IAM Provisioning 시스템이 배포된 계정 ID 입력
+# deploy_cross_account_role = true 일 때 필수
+#
+# 단일 계정 테스트 시: 본인 계정 ID와 동일하게 설정
+# soc_account_id = "111111111111"
+soc_account_id = ""
