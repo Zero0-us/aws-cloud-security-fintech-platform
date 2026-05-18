@@ -346,7 +346,7 @@ resource "aws_iam_role" "cross_account_executor" {
       {
         Effect = "Allow"
         Principal = {
-          AWS = "arn:aws:iam::${var.corp_account_id}:role/${var.project_name}-lambda-iam-executor-role"
+          AWS = "arn:aws:iam::${var.soc_account_id}:role/${var.project_name}-lambda-iam-executor-role"
         }
         Action = "sts:AssumeRole"
       }

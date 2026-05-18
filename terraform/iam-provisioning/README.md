@@ -201,7 +201,7 @@ target_account_ids = {
 
 # 단일 계정 테스트 시
 deploy_cross_account_role = true
-corp_account_id = "123456789012"
+soc_account_id = "123456789012"
 ```
 
 ### 4. Terraform 초기화 및 배포
@@ -233,7 +233,7 @@ export AWS_PROFILE=target-account-profile
 
 # 변수 파일 수정
 # - deploy_cross_account_role = true
-# - corp_account_id = "<Corp 계정 ID>"
+# - soc_account_id = "<SOC 계정 ID>"
 
 # 배포
 terraform apply
@@ -434,7 +434,7 @@ if any(keyword in user_agent for keyword in BOT_KEYWORDS):
 
 ### 7. Cross-Account 보안
 ```
-[Corp 계정]                [Target 계정]
+[SOC 계정]                [Target 계정]
 lambda-iam-executor  →   IAMProvisioningExecutorRole
    (요청)                    (Trust + Permission)
 ```

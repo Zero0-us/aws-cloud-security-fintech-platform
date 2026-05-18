@@ -46,7 +46,7 @@ target_account_ids = {
   stg  = "222222222222"  # 스테이징 환경 계정 ID
   prod = "333333333333"  # 프로덕션 환경 계정 ID
   soc  = "444444444444"  # SOC(보안) 계정 ID
-  corp = "555555555555"  # Corp(중앙관리) 계정 ID
+  corp = "555555555555"  # 기업 본사 계정 ID
 }
 
 
@@ -54,6 +54,7 @@ target_account_ids = {
 # 허용 IAM Role 화이트리스트
 # ============================================================
 # 👉 이 목록에 없는 역할은 자동 거부됩니다 (보안 강화)
+# 새 역할 추가 시 반드시 이 목록에도 추가하세요
 allowed_roles = [
   "System-Admin",
   "Security-Audit",
@@ -73,17 +74,17 @@ allowed_roles = [
 #    → IAMProvisioningExecutorRole이 같은 계정에 생성됨
 #
 # 💡 멀티 계정 운영 시: 
-#    → Corp 계정 배포: false
+#    → SOC 계정 배포: false
 #    → 대상 계정(dev/stg/prod)에 별도 배포: true
 deploy_cross_account_role = false
 
 
 # ============================================================
-# Corp 계정 ID (Cross-Account Role 배포 시 필요)
+# SOC 계정 ID (Cross-Account Role 배포 시 필요)
 # ============================================================
-# 👉 IAM Provisioning 시스템이 배포된 Corp 계정 ID 입력
+# 👉 IAM Provisioning 시스템이 배포된 계정 ID 입력
 # deploy_cross_account_role = true 일 때 필수
 #
 # 단일 계정 테스트 시: 본인 계정 ID와 동일하게 설정
-# corp_account_id = "111111111111"
-corp_account_id = ""
+# soc_account_id = "111111111111"
+soc_account_id = ""
