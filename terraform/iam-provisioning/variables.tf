@@ -100,8 +100,8 @@ variable "dynamodb_ttl_days" {
 }
 
 # Cross-Account Role 설정 (대상 계정 배포용)
-variable "soc_account_id" {
-  description = "SOC Account ID for cross-account role trust"
+variable "corp_account_id" {
+  description = "Corp Account ID for cross-account role trust"
   type        = string
   default     = ""  # 대상 계정 배포 시에만 사용
 }
