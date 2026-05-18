@@ -110,3 +110,45 @@ variable "iam_users" {
     }
   }
 }
+
+# ============================================================
+# SOC (Audit Account) 로그 전송 관련 변수
+# ============================================================
+# stg monitoring.tf 패턴을 prod에도 동일하게 적용하기 위한 변수들.
+# VPC Flow Logs, AWS Config 리소스가 SOC S3 버킷으로 로그 전송 시 사용.
+# ============================================================
+
+variable "soc_log_bucket_name" {
+  description = "Audit Account (SOC)에 있는 PROD 로그 수집 S3 버킷명. 비어 있으면 fin-<env_name>-log-s3를 사용."
+  type        = string
+  default     = ""
+}
+
+variable "soc_log_bucket_prefix" {
+  description = "SOC 로그 버킷 안에서 이 환경 로그를 저장할 prefix. 비어 있으면 env_name을 사용."
+  type        = string
+  default     = ""
+}
+
+variable "enable_soc_monitoring" {
+  description = "VPC Flow Logs, AWS Config를 SOC 로그 버킷으로 전송하는 리소스를 생성할지 여부."
+  type        = bool
+  default     = true
+}
+
+variable "soc_monitoring_retention_days" {
+  description = "PROD 계정 CloudWatch Logs 보관 기간 (일)"
+  type        = number
+  default     = 90
+}
+
+variable "soc_account_id" {
+  description = "SOC AWS 계정 ID"
+  type        = string
+  default     = ""
+}
+variable "soc_lambda_role_name" {
+  description = "SOC 계정의 Lambda 실행 Role 이름. 비어있으면 SOC 계정 root 허용 (덜 안전)."
+  type        = string
+  default     = ""
+}

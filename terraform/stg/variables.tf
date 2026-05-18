@@ -64,6 +64,12 @@ variable "eks_access_entries" {
   default     = {}
 }
 
+# variable "corp_account_id" {
+#   description = "Corp AWS 계정 ID (IAM Role 신뢰 주체)"
+#   type        = string
+#   default     = ""
+# }
+
 variable "soc_vpc_id" {
   description = "SOC VPC ID. 비어 있으면 SOC VPC peering을 생성하지 않음."
   type        = string
@@ -114,6 +120,15 @@ variable "audit_vpc_id" {
 
 variable "audit_account_id" {
   description = "Deprecated: soc_account_id를 사용하세요. 기존 tfvars 호환용."
+  type        = string
+  default     = ""
+}
+# ============================================================
+# SOC Lambda AssumeRole 관련 변수
+# ============================================================
+
+variable "soc_lambda_role_name" {
+  description = "SOC 계정의 Lambda 실행 Role 이름. 비어있으면 SOC 계정 root 허용 (덜 안전)."
   type        = string
   default     = ""
 }
