@@ -234,8 +234,3 @@ variable "cloudwatch_export_max_tasks_per_account" {
   default     = 1
 }
 
-variable "corp_account_id" {
-  description = "Corp AWS 계정 ID (IAM Role 신뢰 주체)"
-  type        = string
-  default     = ""
-}

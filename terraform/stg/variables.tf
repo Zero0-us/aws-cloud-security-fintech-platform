@@ -64,12 +64,6 @@ variable "eks_access_entries" {
   default     = {}
 }
 
-variable "corp_account_id" {
-  description = "Corp AWS 계정 ID (IAM Role 신뢰 주체)"
-  type        = string
-  default     = ""
-}
-
 variable "soc_vpc_id" {
   description = "SOC VPC ID. 비어 있으면 SOC VPC peering을 생성하지 않음."
   type        = string

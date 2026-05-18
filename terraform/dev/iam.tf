@@ -2,12 +2,6 @@
 # iam.tf — Dev 계정 비즈니스 IAM Role
 # ============================================================
 
-variable "corp_account_id" {
-  description = "Corp AWS 계정 ID (IAM Role 신뢰 주체)"
-  type        = string
-  default     = ""
-}
-
 data "aws_caller_identity" "dev" {}
 
 #============================================================
@@ -20,7 +14,7 @@ resource "aws_iam_role" "system_admin" {
     Version = "2012-10-17"
     Statement = [{
       Effect    = "Allow"
-      Principal = { AWS = "arn:aws:iam::${var.corp_account_id}:root" }
+      Principal = { AWS = "arn:aws:iam::${data.aws_caller_identity.dev.account_id}:root" }
       Action    = "sts:AssumeRole"
       Condition = { Bool = { "aws:MultiFactorAuthPresent" = "true" } }
     }]
@@ -44,7 +38,7 @@ resource "aws_iam_role" "dev_manager" {
     Version = "2012-10-17"
     Statement = [{
       Effect    = "Allow"
-      Principal = { AWS = "arn:aws:iam::${var.corp_account_id}:root" }
+      Principal = { AWS = "arn:aws:iam::${data.aws_caller_identity.dev.account_id}:root" }
       Action    = "sts:AssumeRole"
       Condition = { Bool = { "aws:MultiFactorAuthPresent" = "true" } }
     }]
