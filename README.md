@@ -6,7 +6,7 @@
 
 이 저장소는 취약점 점검용 핀테크 웹 애플리케이션을 Dev, Stg, Prod 환경에 배포하고, SOC 계정에서 보안 로그를 중앙 수집하는 구조를 목표로 합니다.
 
-현재 애플리케이션 기준은 JOA 서비스가 아니라 `vuln-bank`입니다.
+현재 애플리케이션 기준은 `vuln-bank`입니다.
 
 - Workload: vuln-bank
 - Runtime: EKS, Kubernetes
