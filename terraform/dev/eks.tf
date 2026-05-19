@@ -151,7 +151,7 @@ resource "aws_iam_role_policy_attachment" "ecr_readonly" {
 
 resource "aws_eks_node_group" "dev_spot" {
   cluster_name    = aws_eks_cluster.dev.name
-  node_group_name = "fin-dev-nodegroup"
+  node_group_name = var.node_group_name
   node_role_arn   = aws_iam_role.eks_node.arn
 
   # Private 서브넷에 배치 (외부 직접 접근 차단)

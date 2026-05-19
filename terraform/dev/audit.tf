@@ -86,8 +86,8 @@ resource "aws_s3_bucket_policy" "cloudtrail" {
 # CloudTrail용 CloudWatch Log Group
 # ────────────────────────────────────────────
 resource "aws_cloudwatch_log_group" "cloudtrail" {
-  name              = "/aws/cloudtrail/fin-dev-cloudtrail"
-  retention_in_days = 90
+  name              = "/aws/cloudtrail/fin-${var.env_name}-cloudtrail"
+  retention_in_days = var.soc_monitoring_retention_days
 
   tags = {
     Name = "fin-dev-cloudtrail-logs"

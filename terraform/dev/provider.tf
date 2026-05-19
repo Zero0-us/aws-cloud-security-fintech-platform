@@ -18,8 +18,8 @@ terraform {
 
 # AWS 프로바이더 설정
 provider "aws" {
-  region  = "ap-northeast-2"   # 서울 리전
-  profile = "dev"              # aws configure --profile dev 로 설정한 자격증명 사용
+  region  = var.region
+  profile = var.aws_profile
   # Access Key / Secret Key를 여기에 직접 쓰면 절대 안 됨!
 
   default_tags {

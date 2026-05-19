@@ -234,3 +234,11 @@ variable "cloudwatch_export_max_tasks_per_account" {
   default     = 1
 }
 
+variable "iam_users" {
+  description = "SOC 계정에 생성할 IAM 유저 목록. key = 유저명, value = groups(admin|security_ops|security_auditor) + tags."
+  type = map(object({
+    groups = list(string)
+    tags   = map(string)
+  }))
+  default = {}
+}

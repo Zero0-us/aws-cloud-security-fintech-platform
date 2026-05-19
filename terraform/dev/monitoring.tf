@@ -13,21 +13,12 @@
 #      → SOC 계정 자체에서 관리
 # ============================================================
 
-locals {
-  soc_log_bucket_name      = "fin-dev-log-s3"
-  soc_log_bucket_prefix    = "dev"
-  soc_log_bucket_arn       = "arn:aws:s3:::fin-dev-log-s3"
-  soc_vpc_flow_logs_prefix = "dev/vpc-flow-logs"
-  soc_config_prefix        = "dev/config"
-  log_retention_days       = 90
-}
-
 # ============================================================
 # VPC Flow Logs → CloudWatch Logs (모니터링/실시간 알림용)
 # ============================================================
 resource "aws_cloudwatch_log_group" "vpc_flow_logs" {
-  name              = "/aws/vpc/fin-dev-flow-logs"
-  retention_in_days = local.log_retention_days
+  name              = "/aws/vpc/fin-${var.env_name}-flow-logs"
+  retention_in_days = var.soc_monitoring_retention_days
 
   tags = {
     Name = "fin-dev-flow-logs"
@@ -89,7 +80,7 @@ resource "aws_flow_log" "vpc_to_cloudwatch" {
 # VPC Flow Logs → SOC S3 (장기 보관 / 컴플라이언스용)
 # ============================================================
 resource "aws_flow_log" "vpc_to_soc_s3" {
-  log_destination      = "${local.soc_log_bucket_arn}/${local.soc_vpc_flow_logs_prefix}"
+  log_destination      = "arn:aws:s3:::${var.soc_log_bucket_name}/${var.soc_log_bucket_prefix}/vpc-flow-logs"
   log_destination_type = "s3"
   traffic_type         = "ALL"
   vpc_id               = aws_vpc.dev.id
@@ -138,8 +129,8 @@ resource "aws_config_configuration_recorder" "soc_audit" {
 
 resource "aws_config_delivery_channel" "soc_audit" {
   name           = "fin-dev-config-delivery"
-  s3_bucket_name = local.soc_log_bucket_name
-  s3_key_prefix  = local.soc_config_prefix
+  s3_bucket_name = var.soc_log_bucket_name
+  s3_key_prefix  = "${var.soc_log_bucket_prefix}/config"
 
   depends_on = [aws_config_configuration_recorder.soc_audit]
 }

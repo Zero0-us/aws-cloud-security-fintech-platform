@@ -23,12 +23,6 @@
 #     아래 locals의 값을 실제 값으로 변경할 것.
 # ============================================================
 
-locals {
-  # SOC 계정 정보 (실제 값으로 교체 필요)
-  soc_account_id       = ""  # 예: "123456789012"
-  soc_lambda_role_name = ""  # 예: "soc-log-export-lambda-role" (비어있으면 SOC 계정 root 허용)
-}
-
 # ────────────────────────────────────────────
 # IAM Role - SOC 계정에서 AssumeRole 가능
 # ────────────────────────────────────────────
@@ -44,7 +38,7 @@ resource "aws_iam_role" "cloudwatch_export" {
         Principal = {
           # SOC Lambda Role이 지정된 경우 → 해당 Role만 허용 (더 안전)
           # 비어있는 경우 → SOC 계정 root (계정 전체) 허용
-          AWS = local.soc_lambda_role_name != "" ? "arn:aws:iam::${local.soc_account_id}:role/${local.soc_lambda_role_name}" : (local.soc_account_id != "" ? "arn:aws:iam::${local.soc_account_id}:root" : "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root")
+          AWS = var.soc_lambda_role_name != "" ? "arn:aws:iam::${var.soc_account_id}:role/${var.soc_lambda_role_name}" : (var.soc_account_id != "" ? "arn:aws:iam::${var.soc_account_id}:root" : "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root")
         }
         Action = "sts:AssumeRole"
       }
@@ -101,8 +95,8 @@ resource "aws_iam_role_policy" "cloudwatch_export" {
           "s3:PutObjectAcl"
         ]
         Resource = [
-          "arn:aws:s3:::fin-dev-log-s3",
-          "arn:aws:s3:::fin-dev-log-s3/*"
+          "arn:aws:s3:::${var.soc_log_bucket_name}",
+          "arn:aws:s3:::${var.soc_log_bucket_name}/*"
         ]
       }
     ]

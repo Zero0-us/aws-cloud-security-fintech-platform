@@ -12,7 +12,7 @@
 # Dev 전용 CIDR. Security=10.10, Prod=10.20과 겹치지 않음.
 
 resource "aws_vpc" "dev" {
-  cidr_block           = "10.30.0.0/16"
+  cidr_block           = var.vpc_cidr
   enable_dns_support   = true    # VPC 내부 DNS 해석 활성화 (EKS 필수)
   enable_dns_hostnames = true    # EC2에 DNS 호스트명 부여 (EKS 필수)
 
@@ -36,28 +36,28 @@ resource "aws_vpc" "dev" {
 
 resource "aws_subnet" "dev_pub_2a" {
   vpc_id                  = aws_vpc.dev.id
-  cidr_block              = "10.30.1.0/24"       # 254개 IP (호스트용)
-  availability_zone       = "ap-northeast-2a"
+  cidr_block              = var.public_subnets[0]
+  availability_zone       = var.availability_zones[0]
   map_public_ip_on_launch = true                  # 여기 생성된 리소스에 공인 IP 자동 부여
 
   tags = {
-    Name = "fin-dev-pub-sub-2a"
+    Name = "fin-${var.env_name}-pub-sub-2a"
     # EKS가 이 서브넷에 ALB를 만들 수 있도록 태그 필수
-    "kubernetes.io/role/elb" = "1"
-    "kubernetes.io/cluster/fin-dev-eks" = "shared"
+    "kubernetes.io/role/elb"                          = "1"
+    "kubernetes.io/cluster/fin-${var.env_name}-eks"   = "shared"
   }
 }
 
 resource "aws_subnet" "dev_pub_2c" {
   vpc_id                  = aws_vpc.dev.id
-  cidr_block              = "10.30.2.0/24"
-  availability_zone       = "ap-northeast-2c"
+  cidr_block              = var.public_subnets[1]
+  availability_zone       = var.availability_zones[1]
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "fin-dev-pub-sub-2c"
-    "kubernetes.io/role/elb" = "1"
-    "kubernetes.io/cluster/fin-dev-eks" = "shared"
+    Name = "fin-${var.env_name}-pub-sub-2c"
+    "kubernetes.io/role/elb"                          = "1"
+    "kubernetes.io/cluster/fin-${var.env_name}-eks"   = "shared"
   }
 }
 
@@ -66,26 +66,26 @@ resource "aws_subnet" "dev_pub_2c" {
 
 resource "aws_subnet" "dev_pri_2a" {
   vpc_id            = aws_vpc.dev.id
-  cidr_block        = "10.30.10.0/24"
-  availability_zone = "ap-northeast-2a"
+  cidr_block        = var.private_subnets[0]
+  availability_zone = var.availability_zones[0]
 
   tags = {
-    Name = "fin-dev-pri-sub-2a"
+    Name = "fin-${var.env_name}-pri-sub-2a"
     # EKS 내부 로드밸런서용 태그
-    "kubernetes.io/role/internal-elb" = "1"
-    "kubernetes.io/cluster/fin-dev-eks" = "shared"
+    "kubernetes.io/role/internal-elb"                 = "1"
+    "kubernetes.io/cluster/fin-${var.env_name}-eks"   = "shared"
   }
 }
 
 resource "aws_subnet" "dev_pri_2c" {
   vpc_id            = aws_vpc.dev.id
-  cidr_block        = "10.30.11.0/24"
-  availability_zone = "ap-northeast-2c"
+  cidr_block        = var.private_subnets[1]
+  availability_zone = var.availability_zones[1]
 
   tags = {
-    Name = "fin-dev-pri-sub-2c"
-    "kubernetes.io/role/internal-elb" = "1"
-    "kubernetes.io/cluster/fin-dev-eks" = "shared"
+    Name = "fin-${var.env_name}-pri-sub-2c"
+    "kubernetes.io/role/internal-elb"                 = "1"
+    "kubernetes.io/cluster/fin-${var.env_name}-eks"   = "shared"
   }
 }
 
@@ -95,21 +95,21 @@ resource "aws_subnet" "dev_pri_2c" {
 
 resource "aws_subnet" "dev_db_2a" {
   vpc_id            = aws_vpc.dev.id
-  cidr_block        = "10.30.20.0/24"
-  availability_zone = "ap-northeast-2a"
+  cidr_block        = var.db_subnets[0]
+  availability_zone = var.availability_zones[0]
 
   tags = {
-    Name = "fin-dev-db-sub-2a"
+    Name = "fin-${var.env_name}-db-sub-2a"
   }
 }
 
 resource "aws_subnet" "dev_db_2c" {
   vpc_id            = aws_vpc.dev.id
-  cidr_block        = "10.30.21.0/24"
-  availability_zone = "ap-northeast-2c"
+  cidr_block        = var.db_subnets[1]
+  availability_zone = var.availability_zones[1]
 
   tags = {
-    Name = "fin-dev-db-sub-2c"
+    Name = "fin-${var.env_name}-db-sub-2c"
   }
 }
 
