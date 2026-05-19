@@ -8,3 +8,9 @@ variable "alb_arn" {
   type        = string
   default     = null
 }
+
+variable "log_retention_days" {
+  description = "WAF CloudWatch Logs 보관 기간 (일)"
+  type        = number
+  default     = 90
+}

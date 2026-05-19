@@ -1,3 +1,9 @@
+variable "aws_profile" {
+  description = "로컬 환경의 IAM 자격 증명을 특정하기 위한 AWS CLI 프로필 명칭"
+  type        = string
+  default     = "fintech-soc"
+}
+
 variable "aws_region" {
   description = "AWS Region"
   type        = string
@@ -125,7 +131,7 @@ variable "stage_vpc_peering_connection_id" {
 variable "prod_account_id" {
   description = "Production AWS account ID allowed to deliver logs into the SOC log archive"
   type        = string
-  default     = ""
+  default     = "423401347162"
 }
 
 variable "dev_account_id" {
@@ -218,7 +224,8 @@ variable "cloudwatch_export_log_group_prefixes" {
     "/aws/config/",
     "/aws/vpc/flowlogs/",
     "/aws/application/",
-    "/aws/elasticloadbalancing/"
+    "/aws/elasticloadbalancing/",
+    "aws-waf-logs-"
   ]
 }
 

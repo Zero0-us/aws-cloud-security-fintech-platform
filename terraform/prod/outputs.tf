@@ -23,7 +23,7 @@ output "rds_secret_name" {
 }
 
 output "vuln_bank_ecr_repository" {
-  value = "364585378962.dkr.ecr.ap-northeast-2.amazonaws.com/vuln-bank"
+  value = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com/vuln-bank"
 }
 
 output "iam_group_names" {

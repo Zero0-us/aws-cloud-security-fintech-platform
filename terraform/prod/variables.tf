@@ -1,7 +1,7 @@
 variable "aws_profile" {
   description = "AWS CLI profile name"
   type        = string
-  default     = "default"
+  default     = "fintech-prod"
 }
 
 variable "region" {
@@ -145,7 +145,7 @@ variable "soc_monitoring_retention_days" {
 variable "soc_account_id" {
   description = "SOC AWS 계정 ID"
   type        = string
-  default     = ""
+  default     = "549027855245"
 }
 variable "soc_lambda_role_name" {
   description = "SOC 계정의 Lambda 실행 Role 이름. 비어있으면 SOC 계정 root 허용 (덜 안전)."

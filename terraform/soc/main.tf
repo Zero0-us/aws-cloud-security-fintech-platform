@@ -1108,7 +1108,6 @@ resource "aws_s3_bucket_policy" "soc_audit_log_bucket_policy" {
         Condition = {
           StringEquals = {
             "aws:SourceAccount" = local.log_source_account_ids
-            "s3:x-amz-acl"      = "bucket-owner-full-control"
           }
         }
       },

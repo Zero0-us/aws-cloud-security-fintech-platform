@@ -20,7 +20,7 @@ terraform {
 
 provider "aws" {
   region  = var.region
-  profile = "default"
+  profile = var.aws_profile
 
   default_tags {
     tags = {
@@ -30,18 +30,22 @@ provider "aws" {
   }
 }
 
-## Phase 1: EKS가 생성된 후 아래 주석을 해제하세요
-# data "aws_eks_cluster_auth" "this" {
-#   name = module.prod_eks.cluster_name
-# }
+## Phase 2: EKS 생성 후 실제 클러스터로 연결
+data "aws_eks_cluster_auth" "this" {
+  name = module.prod_eks.cluster_name
+}
 
 provider "kubernetes" {
-  host = "https://localhost"
+  host                   = module.prod_eks.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.prod_eks.cluster_certificate_authority_data)
+  token                  = data.aws_eks_cluster_auth.this.token
 }
 
 provider "helm" {
   kubernetes {
-    host = "https://localhost"
+    host                   = module.prod_eks.cluster_endpoint
+    cluster_ca_certificate = base64decode(module.prod_eks.cluster_certificate_authority_data)
+    token                  = data.aws_eks_cluster_auth.this.token
   }
 }
 

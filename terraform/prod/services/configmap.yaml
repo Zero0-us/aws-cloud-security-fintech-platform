@@ -3,7 +3,7 @@ kind: ConfigMap
 metadata:
   name: vuln-bank-config
 data:
-  DB_HOST: "fin-prod-db.cv8qqkmg0hgu.ap-northeast-2.rds.amazonaws.com"
+  DB_HOST: "fin-prod-db.cvi0cecem5fa.ap-northeast-2.rds.amazonaws.com"
   DB_PORT: "5432"
   DB_NAME: "vulnerable_bank"
   DEEPSEEK_API_KEY: "demo-key"

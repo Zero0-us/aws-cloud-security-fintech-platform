@@ -28,6 +28,7 @@ module "prod_eks" {
 
   node_group_name = var.node_group_name
   region          = var.region
+  aws_profile     = var.aws_profile
 
   env_name        = var.env_name
   vpc_id          = module.prod_vpc.vpc_id

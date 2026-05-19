@@ -20,8 +20,8 @@ locals {
   soc_log_bucket_prefix = var.soc_log_bucket_prefix != "" ? trim(var.soc_log_bucket_prefix, "/") : var.env_name
   soc_log_bucket_arn    = "arn:aws:s3:::${local.soc_log_bucket_name}"
 
-  soc_vpc_flow_logs_prefix = "${local.soc_log_bucket_prefix}/vpc-flow-logs"
-  soc_config_prefix        = "${local.soc_log_bucket_prefix}/config"
+  soc_vpc_flow_logs_prefix = "vpc-flow-logs"
+  soc_config_prefix        = ""
 }
 
 # ============================================================
@@ -167,7 +167,7 @@ resource "aws_config_delivery_channel" "soc_audit" {
 
   name           = "fin-${var.env_name}-config-delivery"
   s3_bucket_name = local.soc_log_bucket_name
-  s3_key_prefix  = local.soc_config_prefix
+  s3_key_prefix  = local.soc_config_prefix != "" ? local.soc_config_prefix : null
 
   depends_on = [aws_config_configuration_recorder.soc_audit]
 }

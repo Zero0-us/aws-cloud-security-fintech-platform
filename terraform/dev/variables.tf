@@ -72,6 +72,18 @@ variable "soc_account_id" {
   default     = ""
 }
 
+variable "soc_vpc_id" {
+  description = "SOC/Audit VPC ID. VPC 피어링 요청 시 상대 VPC를 식별함. 비어있으면 피어링 리소스를 생성하지 않음."
+  type        = string
+  default     = ""
+}
+
+variable "soc_vpc_cidr" {
+  description = "SOC/Audit VPC CIDR 대역. 피어링 라우팅 규칙에 사용됨."
+  type        = string
+  default     = "10.10.0.0/16"
+}
+
 variable "soc_lambda_role_name" {
   description = "SOC 계정의 Lambda 실행 Role 이름. 비어있으면 SOC 계정 root 허용 (덜 안전)."
   type        = string

@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: vuln-bank
-          image: 364585378962.dkr.ecr.ap-northeast-2.amazonaws.com/vuln-bank:latest
+          image: 423401347162.dkr.ecr.ap-northeast-2.amazonaws.com/vuln-bank:latest
           imagePullPolicy: Always
           ports:
             - name: http

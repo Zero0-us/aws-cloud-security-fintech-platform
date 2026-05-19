@@ -48,6 +48,12 @@ variable "region" {
   type        = string
 }
 
+variable "aws_profile" {
+  description = "AWS CLI 프로필명 (kubeconfig 업데이트 시 사용)"
+  type        = string
+  default     = "default"
+}
+
 variable "node_group_name" {
   description = "EKS 노드 그룹의 이름"
   type        = string

@@ -14,7 +14,11 @@ resource "aws_subnet" "public" {
   vpc_id            = aws_vpc.this.id
   cidr_block        = var.public_subnets[count.index]
   availability_zone = var.azs[count.index]
-  tags              = { Name = "fin-${var.env_name}-pub-sub-${substr(var.azs[count.index], -2, 2)}" }
+  tags = {
+    Name                                 = "fin-${var.env_name}-pub-sub-${substr(var.azs[count.index], -2, 2)}"
+    "kubernetes.io/cluster/fin-prod-eks" = "shared"
+    "kubernetes.io/role/elb"             = "1"
+  }
 }
 
 resource "aws_subnet" "private" {
