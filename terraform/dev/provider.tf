@@ -31,3 +31,12 @@ provider "aws" {
     }
   }
 }
+
+# 배포 전 테라폼이 실제로 인지하고 있는 AWS 계정 정보를 강제로 출력함.
+# 계정 꼬임 현상으로 인한 오배포 및 비용 발생을 물리적으로 방지하기 위함임.
+data "aws_caller_identity" "current" {}
+
+output "deploy_account_id" {
+  description = "현재 테라폼이 배포를 시도하려는 계정 ID"
+  value       = data.aws_caller_identity.current.account_id
+}
