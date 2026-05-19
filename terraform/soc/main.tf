@@ -1112,6 +1112,24 @@ resource "aws_s3_bucket_policy" "soc_audit_log_bucket_policy" {
         }
       },
       {
+        # ALB 액세스 로그 크로스 계정 전송
+        # ALB가 다른 계정(prod) S3에 로그 전송 시 서비스 principal이 아닌
+        # ap-northeast-2 리전 ELB 서비스 계정 ID(600734575887)로 인증함.
+        Sid    = "ALBCrossAccountLogDelivery"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::600734575887:root"
+        }
+        Action = [
+          "s3:PutObject",
+          "s3:GetBucketAcl"
+        ]
+        Resource = [
+          "${aws_s3_bucket.soc_audit_log_bucket.arn}",
+          "${aws_s3_bucket.soc_audit_log_bucket.arn}/alb/AWSLogs/${var.prod_account_id}/*"
+        ]
+      },
+      {
         Sid    = "CloudWatchLogsExportAclCheck"
         Effect = "Allow"
         Principal = {

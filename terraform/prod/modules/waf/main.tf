@@ -140,41 +140,7 @@ resource "aws_wafv2_web_acl_logging_configuration" "main" {
 }
 
 # ============================================================
-# WAF 차단 이벤트 이상 탐지 알람
+# WAF 이상 탐지 알람은 SOC 계정에서 관리
+# WAF 로그가 CloudWatch → SOC Lambda → SOC S3로 전송되므로
+# 알람/알림 처리는 SOC 측 책임. prod에서는 구성하지 않음.
 # ============================================================
-# WAF가 SQLi/XSS 등을 차단하면 BlockedRequests 메트릭이 증가함.
-# 5분 내 차단 건수가 임계값 초과 시 SNS로 알림 발송.
-# ============================================================
-
-resource "aws_sns_topic" "waf_alerts" {
-  name = "fin-${var.env_name}-waf-alerts"
-}
-
-resource "aws_sns_topic_subscription" "waf_alerts_email" {
-  count     = var.alert_email != "" ? 1 : 0
-  topic_arn = aws_sns_topic.waf_alerts.arn
-  protocol  = "email"
-  endpoint  = var.alert_email
-}
-
-resource "aws_cloudwatch_metric_alarm" "waf_blocked_requests" {
-  alarm_name          = "fin-${var.env_name}-waf-blocked-requests"
-  alarm_description   = "WAF 차단 요청 급증 탐지 — SQLi/XSS 공격 의심"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 1
-  metric_name         = "BlockedRequests"
-  namespace           = "AWS/WAFV2"
-  period              = 300
-  statistic           = "Sum"
-  threshold           = var.waf_block_alarm_threshold
-  treat_missing_data  = "notBreaching"
-
-  dimensions = {
-    WebACL = "fin-${var.env_name}-waf"
-    Region = "ap-northeast-2"
-    Rule   = "ALL"
-  }
-
-  alarm_actions = [aws_sns_topic.waf_alerts.arn]
-  ok_actions    = [aws_sns_topic.waf_alerts.arn]
-}
