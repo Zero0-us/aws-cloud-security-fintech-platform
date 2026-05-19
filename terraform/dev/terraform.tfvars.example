@@ -1,0 +1,15 @@
+soc_log_bucket_name      = "fin-dev-log-s3"
+cloudtrail_s3_key_prefix = "soc-logs/cloudtrail/dev"
+config_s3_key_prefix     = "soc-logs/config/dev"
+alb_access_logs_prefix   = "alb"
+
+# Set this after applying terraform/soc:
+# terraform -chdir=../soc output -raw s3_cmk_arn
+soc_log_kms_key_arn = ""
+
+# For least privilege, set this to terraform/soc output cloudwatch_logs_export_lambda_role_arn.
+# The default trusts the SOC account root as a bootstrap value.
+soc_export_principal_arn = "arn:aws:iam::399707826519:root"
+
+# Dev runs in a separate AWS account, so this can match the workbook design.
+cloudwatch_export_role_name = "fin-cloudwatch-export-role"

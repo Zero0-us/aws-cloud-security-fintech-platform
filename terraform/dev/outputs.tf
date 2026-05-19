@@ -1,11 +1,7 @@
-# ============================================================
-# outputs.tf — 생성된 리소스 정보 출력
-# ============================================================
-# terraform apply 완료 후 화면에 표시될 값들.
-# 다른 팀원(Security, Prod)과 VPC 피어링할 때 이 값들이 필요.
+data "aws_caller_identity" "current" {}
 
 output "vpc_id" {
-  description = "Dev VPC ID (VPC 피어링 시 필요)"
+  description = "Dev VPC ID"
   value       = aws_vpc.dev.id
 }
 
@@ -15,53 +11,131 @@ output "vpc_cidr" {
 }
 
 output "eks_cluster_name" {
-  description = "EKS 클러스터 이름"
+  description = "EKS cluster name"
   value       = aws_eks_cluster.dev.name
 }
 
 output "eks_cluster_endpoint" {
-  description = "EKS API 서버 엔드포인트 (kubectl 연결용)"
+  description = "EKS API endpoint"
   value       = aws_eks_cluster.dev.endpoint
 }
 
 output "eks_cluster_version" {
-  description = "Kubernetes 버전"
+  description = "Kubernetes version"
   value       = aws_eks_cluster.dev.version
 }
 
 output "rds_endpoint" {
-  description = "RDS 접속 주소 (EKS Pod에서 사용, MySQL 3306)"
+  description = "RDS endpoint with port"
   value       = aws_db_instance.dev.endpoint
 }
 
+output "rds_address" {
+  description = "RDS hostname without port"
+  value       = aws_db_instance.dev.address
+}
+
+output "rds_port" {
+  description = "RDS PostgreSQL port"
+  value       = aws_db_instance.dev.port
+}
+
 output "rds_database_name" {
-  description = "DB 이름"
+  description = "DB name"
   value       = aws_db_instance.dev.db_name
 }
 
 output "rds_engine" {
-  description = "DB 엔진"
+  description = "DB engine"
   value       = aws_db_instance.dev.engine
 }
 
+output "rds_secret_name" {
+  description = "Secrets Manager secret name for DB password"
+  value       = aws_secretsmanager_secret.db_password.name
+}
+
 output "alb_dns_name" {
-  description = "ALB 접속 주소 (브라우저에서 접속)"
+  description = "ALB DNS name"
   value       = aws_lb.dev.dns_name
 }
 
+output "alb_target_group_arn" {
+  description = "ALB target group ARN"
+  value       = aws_lb_target_group.dev.arn
+}
+
+output "cloudtrail_name" {
+  description = "Dev CloudTrail name"
+  value       = aws_cloudtrail.dev.name
+}
+
+output "cloudtrail_s3_bucket" {
+  description = "SOC S3 bucket for dev CloudTrail"
+  value       = var.soc_log_bucket_name
+}
+
+output "cloudtrail_s3_prefix" {
+  description = "SOC S3 prefix for dev CloudTrail"
+  value       = var.cloudtrail_s3_key_prefix
+}
+
+output "cloudtrail_log_group" {
+  description = "CloudTrail CloudWatch Logs group"
+  value       = aws_cloudwatch_log_group.cloudtrail.name
+}
+
+output "vpc_flow_log_group" {
+  description = "VPC Flow Logs CloudWatch Logs group"
+  value       = aws_cloudwatch_log_group.vpc_flow_logs.name
+}
+
+output "waf_log_group" {
+  description = "WAF CloudWatch Logs group"
+  value       = aws_cloudwatch_log_group.waf.name
+}
+
+output "eks_cluster_log_group" {
+  description = "EKS control plane CloudWatch Logs group"
+  value       = aws_cloudwatch_log_group.eks_cluster.name
+}
+
+output "config_recorder_name" {
+  description = "AWS Config recorder name"
+  value       = aws_config_configuration_recorder.dev.name
+}
+
+output "config_delivery_bucket" {
+  description = "SOC S3 bucket for AWS Config delivery"
+  value       = var.soc_log_bucket_name
+}
+
+output "config_delivery_prefix" {
+  description = "SOC S3 prefix for AWS Config delivery"
+  value       = var.config_s3_key_prefix
+}
+
+output "cloudwatch_export_role_arn" {
+  description = "CloudWatch Logs export role ARN for SOC automation"
+  value       = aws_iam_role.cloudwatch_export.arn
+}
+
 output "nat_gateway_ip" {
-  description = "NAT Gateway 공인 IP"
+  description = "NAT Gateway public IP"
   value       = aws_eip.nat.public_ip
 }
 
-# VPC 피어링 시 상대방에게 전달할 정보
+output "vuln_bank_ecr_repository" {
+  description = "Dev ECR repository URL for vuln-bank"
+  value       = aws_ecr_repository.vuln_bank.repository_url
+}
+
 output "peering_info" {
-  description = "VPC 피어링 요청 시 상대 팀에게 전달할 정보"
+  description = "VPC peering information for the Security/Audit account"
   value = {
     account_id = data.aws_caller_identity.current.account_id
     vpc_id     = aws_vpc.dev.id
     vpc_cidr   = aws_vpc.dev.cidr_block
-    region     = "ap-northeast-2"
+    region     = var.region
   }
 }
-

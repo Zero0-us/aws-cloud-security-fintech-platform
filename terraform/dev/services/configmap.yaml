@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vuln-bank-config
+data:
+  DB_HOST: "REPLACE_WITH_TERRAFORM_OUTPUT_RDS_ADDRESS"
+  DB_PORT: "5432"
+  DB_NAME: "vulnerable_bank"
+  DEEPSEEK_API_KEY: "demo-key"
