@@ -4,33 +4,45 @@ output "vpc_id" {
   value       = aws_vpc.this.id
 }
 
-# (나중을 위해) 퍼블릭 서브넷 ID들도 같이 내보내면 좋습니다.
+# 퍼블릭 서브넷 ID 리스트
 output "public_subnet_ids" {
   description = "생성된 퍼블릭 서브넷들의 ID 리스트입니다."
   value       = aws_subnet.public[*].id
 }
 
+# 프라이빗 서브넷 ID 리스트
 output "private_subnet_ids" {
   description = "생성된 프라이빗 서브넷 ID 리스트"
   value       = aws_subnet.private[*].id
 }
 
+# DB 서브넷 ID 리스트
 output "db_subnet_ids" {
-  value = aws_subnet.db[*].id
+  description = "생성된 DB 서브넷 ID 리스트"
+  value       = aws_subnet.db[*].id
 }
 
-# VPC Peering 라우팅에 필요한 Route Table ID
+# 퍼블릭 라우트 테이블 ID
 output "public_route_table_id" {
   description = "퍼블릭 라우트 테이블 ID"
   value       = aws_route_table.public.id
 }
 
+# 프라이빗 라우트 테이블 ID
 output "private_route_table_id" {
   description = "프라이빗 라우트 테이블 ID"
   value       = aws_route_table.private.id
 }
 
+# DB 라우트 테이블 ID
 output "db_route_table_id" {
   description = "DB 라우트 테이블 ID"
   value       = aws_route_table.db.id
+}
+
+# 첫 번째 퍼블릭 서브넷 ID
+# public subnet이 비어 있으면 null 반환
+output "first_public_subnet_id" {
+  description = "첫 번째 퍼블릭 서브넷 ID"
+  value       = length(aws_subnet.public) > 0 ? aws_subnet.public[0].id : null
 }

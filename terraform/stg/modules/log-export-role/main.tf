@@ -2,7 +2,7 @@
 # fin-cloudwatch-export-role
 # ============================================================
 # 용도:
-#   SOC 계정의 중앙 Lambda가 각 계정(Prod/Dev/Stg)의
+#   SOC 계정의 중앙 Lambda가 각 계정(Stg/Dev/Stg)의
 #   CloudWatch Logs를 SOC S3로 export하기 위해 AssumeRole하는 IAM Role.
 #
 # 배경:
@@ -19,6 +19,8 @@
 #   [SOC S3 버킷]
 # ============================================================
 
+data "aws_caller_identity" "current" {}
+
 # [1] IAM Role - SOC 계정에서 AssumeRole 가능
 resource "aws_iam_role" "cloudwatch_export" {
   name = "fin-cloudwatch-export-role"
@@ -31,8 +33,9 @@ resource "aws_iam_role" "cloudwatch_export" {
         Effect = "Allow"
         Principal = {
           # SOC Lambda Role 이름이 지정된 경우 → 해당 Role만 허용 (더 안전)
-          # 비어있는 경우 → SOC 계정 root (계정 전체) 허용
-          AWS = var.soc_lambda_role_name != "" ? "arn:aws:iam::${var.soc_account_id}:role/${var.soc_lambda_role_name}" : "arn:aws:iam::${var.soc_account_id}:root"
+          # soc_account_id만 있는 경우   → SOC 계정 root 허용
+          # soc_account_id 비어있는 경우 → 자기 계정 root (임시 fallback, SOC ID 확정 후 교체)
+          AWS = var.soc_lambda_role_name != "" ? "arn:aws:iam::${var.soc_account_id}:role/${var.soc_lambda_role_name}" : (var.soc_account_id != "" ? "arn:aws:iam::${var.soc_account_id}:root" : "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root")
         }
         Action = "sts:AssumeRole"
       }
@@ -79,7 +82,7 @@ resource "aws_iam_role_policy" "cloudwatch_export" {
         ]
         Resource = "*"
       },
-      # SOC S3 버킷에 쓰기 권한
+      # SOC S3 버킷에 쓰기 권한 (Export Task 결과물 저장용)
       {
         Sid    = "AllowS3WriteToSOCBucket"
         Effect = "Allow"
