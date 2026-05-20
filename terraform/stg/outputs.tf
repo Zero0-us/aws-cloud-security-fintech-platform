@@ -1,18 +1,55 @@
-#============================================================
-# VPN Outputs
-#============================================================
-output "vpn_instance_id" {
-  description = "VPN Instance ID for SSM access"
-  value       = aws_instance.vpn.id
+output "rds_address" {
+  value = module.stg_db.db_address
 }
 
-output "vpn_private_ip" {
-  description = "VPN Instance Private IP"
-  value       = aws_instance.vpn.private_ip
+output "rds_endpoint" {
+  value = module.stg_db.db_endpoint
 }
 
-# VPN EC2 고정 IP (Corp에 전달 필요)
-output "vpn_fixed_ip" {
-  description = "VPN EC2 EIP - Corp에 전달 필요"
-  value       = aws_eip.vpn.public_ip
+output "rds_port" {
+  value = module.stg_db.db_port
+}
+
+output "rds_db_name" {
+  value = module.stg_db.db_name
+}
+
+output "rds_username" {
+  value = module.stg_db.db_username
+}
+
+output "rds_secret_name" {
+  value = module.stg_db.db_secret_name
+}
+
+output "vuln_bank_ecr_repository" {
+  value = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com/vuln-bank"
+}
+
+output "iam_group_names" {
+  value = module.stg_iam.group_names
+}
+
+output "iam_user_names" {
+  value = module.stg_iam.user_names
+}
+
+output "iam_user_arns" {
+  value = module.stg_iam.user_arns
+}
+
+output "iam_mfa_policy_arn" {
+  value = module.stg_iam.mfa_policy_arn
+}
+
+output "cloudtrail_name" {
+  value = module.stg_audit.cloudtrail_name
+}
+
+output "cloudtrail_s3_bucket" {
+  value = module.stg_audit.cloudtrail_s3_bucket
+}
+
+output "cloudtrail_log_group" {
+  value = module.stg_audit.cloudtrail_log_group
 }

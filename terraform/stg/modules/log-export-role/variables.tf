@@ -4,11 +4,11 @@
 # SOC 계정의 중앙 Lambda가 이 Role을 AssumeRole하여
 # 각 계정의 CloudWatch Logs를 SOC S3로 export하는 용도.
 #
-# 적용 대상: Prod / Dev / Stg 3개 계정 공통
+# 적용 대상: Stg / Dev / Stg 3개 계정 공통
 # ============================================================
 
 variable "env_name" {
-  description = "Environment name (prod, dev, stg)"
+  description = "Environment name (stg, dev, stg)"
   type        = string
 }
 

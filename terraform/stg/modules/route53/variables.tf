@@ -1,20 +1,20 @@
 variable "env_name" {
-  description = "환경 이름 (prod, stg, dev 등)"
-  type        = string
+  type = string
 }
 
 variable "base_domain" {
-  description = "서비스의 기본 도메인 이름"
-  type        = string
-  default     = "fin-api.com"
+  type    = string
+  default = "fin-api.com"
 }
 
 variable "alb_dns_name" {
-  description = "연결할 ALB의 DNS 주소"
+  description = "Target ALB DNS name. Empty keeps the hosted zone but skips the alias record."
   type        = string
+  default     = ""
 }
 
 variable "alb_zone_id" {
-  description = "연결할 ALB의 Hosted Zone ID"
+  description = "Target ALB hosted zone ID. Empty keeps the hosted zone but skips the alias record."
   type        = string
+  default     = ""
 }

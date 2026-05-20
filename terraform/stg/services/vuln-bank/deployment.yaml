@@ -1,0 +1,72 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vuln-bank
+  labels:
+    app: vuln-bank
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: vuln-bank
+  template:
+    metadata:
+      labels:
+        app: vuln-bank
+    spec:
+      containers:
+        - name: vuln-bank
+          image: 423401347162.dkr.ecr.ap-northeast-2.amazonaws.com/vuln-bank:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 5000
+          envFrom:
+            - configMapRef:
+                name: vuln-bank-config
+            - secretRef:
+                name: vuln-bank-secrets
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/static/uploads
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 5000
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 5000
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 768Mi
+      volumes:
+        - name: uploads
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vuln-bank
+  labels:
+    app: vuln-bank
+spec:
+  type: ClusterIP
+  selector:
+    app: vuln-bank
+  ports:
+    - name: http
+      port: 5000
+      targetPort: 5000

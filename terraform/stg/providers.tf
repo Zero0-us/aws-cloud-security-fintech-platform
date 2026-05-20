@@ -20,7 +20,7 @@ terraform {
 
 provider "aws" {
   region  = var.region
-  profile = var.aws_profile != "" ? var.aws_profile : null
+  profile = var.aws_profile
 
   default_tags {
     tags = {
@@ -30,25 +30,22 @@ provider "aws" {
   }
 }
 
+## Phase 2: EKS 생성 후 실제 클러스터로 연결
 data "aws_eks_cluster_auth" "this" {
-  name = module.prod_eks.cluster_name
+  name = module.stg_eks.cluster_name
 }
 
 provider "kubernetes" {
-  host                   = module.prod_eks.cluster_endpoint
-  cluster_ca_certificate = base64decode(module.prod_eks.cluster_certificate_authority_data)
+  host                   = module.stg_eks.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.stg_eks.cluster_certificate_authority_data)
   token                  = data.aws_eks_cluster_auth.this.token
 }
 
 provider "helm" {
   kubernetes {
-    host                   = module.prod_eks.cluster_endpoint
-    cluster_ca_certificate = base64decode(module.prod_eks.cluster_certificate_authority_data)
-    exec {
-      api_version = "client.authentication.k8s.io/v1beta1"
-      args        = var.aws_profile != "" ? ["eks", "get-token", "--cluster-name", module.prod_eks.cluster_name, "--profile", var.aws_profile] : ["eks", "get-token", "--cluster-name", module.prod_eks.cluster_name]
-      command     = "aws"
-    }
+    host                   = module.stg_eks.cluster_endpoint
+    cluster_ca_certificate = base64decode(module.stg_eks.cluster_certificate_authority_data)
+    token                  = data.aws_eks_cluster_auth.this.token
   }
 }
 
@@ -61,4 +58,5 @@ output "deploy_account_id" {
   description = "현재 테라폼이 배포를 시도하려는 계정 ID"
   value       = data.aws_caller_identity.current.account_id
 }
+
 

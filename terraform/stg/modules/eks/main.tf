@@ -5,7 +5,7 @@
 # 커스텀 KMS 키 + alias/fin-eks-cmk 로 변경.
 
 resource "aws_kms_key" "eks" {
-  description             = "KMS CMK for EKS Secret encryption (fin-${var.env_name}-eks-cmk)"
+  description             = "KMS CMK for EKS Secret encryption (fin-eks-cmk)"
   deletion_window_in_days = 7
   enable_key_rotation     = true
 
@@ -24,7 +24,7 @@ resource "aws_kms_key" "eks" {
 }
 
 resource "aws_kms_alias" "eks" {
-  name          = "alias/fin-${var.env_name}-eks-cmk"
+  name          = "alias/fin-eks-cmk"
   target_key_id = aws_kms_key.eks.key_id
 }
 
@@ -45,7 +45,7 @@ module "eks" {
   cluster_endpoint_private_access = true
 
   # [P-C2] 커스텀 KMS CMK로 Secret 암호화 (alias/fin-eks-cmk)
-  create_kms_key            = false
+  create_kms_key = false
   cluster_encryption_config = {
     provider_key_arn = aws_kms_key.eks.arn
     resources        = ["secrets"]
@@ -58,12 +58,12 @@ module "eks" {
 
   # 노드 그룹 설정 — JOA 서비스 Pod 8개 대응 (t3.medium × 2)
   eks_managed_node_groups = {
-    (var.node_group_name) = {
+    fin-stg-nodegroup = {
       ami_type       = "AL2_x86_64"
-      name           = var.node_group_name
+      name           = "fin-stg-nodegroup"
       instance_types = var.node_instance_types
       capacity_type  = var.node_capacity_type
-      
+
       min_size     = var.node_min_size
       max_size     = var.node_max_size
       desired_size = var.node_desired_size
@@ -86,6 +86,6 @@ resource "null_resource" "update_kubeconfig" {
   depends_on = [module.eks]
 
   provisioner "local-exec" {
-    command = var.aws_profile != "" ? "aws eks update-kubeconfig --name ${module.eks.cluster_name} --region ${var.region} --profile ${var.aws_profile}" : "aws eks update-kubeconfig --name ${module.eks.cluster_name} --region ${var.region}"
+    command = "aws eks update-kubeconfig --name ${module.eks.cluster_name} --region ${var.region} --profile ${var.aws_profile}"
   }
 }

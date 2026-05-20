@@ -11,12 +11,12 @@ variable "cluster_name" {
 
 variable "cluster_version" {
   type    = string
-  default = "1.29"
+  default = "1.30"
 }
 
 variable "node_instance_types" {
   type    = list(string)
-  default = ["t3.micro"]
+  default = ["t3.small"] # Free Tier 계정 제한 대응
 }
 
 variable "node_capacity_type" {
@@ -24,15 +24,15 @@ variable "node_capacity_type" {
   default = "ON_DEMAND"
 }
 
-variable "node_desired_size" { default = 2 }
+variable "node_desired_size" { default = 2 } # 2노드로 Pod 분산
 variable "node_min_size" { default = 2 }
-variable "node_max_size" { default = 3 }
+variable "node_max_size" { default = 4 }
 variable "node_disk_size" { default = 20 }
 
 variable "ebs_csi_addon_version" {
   description = "EBS CSI 드라이버 애드온 버전"
   type        = string
-  default     = null
+  default     = "v1.27.0-eksbuild.1"
 }
 
 # KMS 시크릿 암호화 기능 활성화 변수 추가
@@ -49,9 +49,9 @@ variable "region" {
 }
 
 variable "aws_profile" {
-  description = "AWS CLI 프로필명. 비어 있으면 기본 자격증명을 사용."
+  description = "AWS CLI 프로필명 (kubeconfig 업데이트 시 사용)"
   type        = string
-  default     = ""
+  default     = "default"
 }
 
 variable "node_group_name" {

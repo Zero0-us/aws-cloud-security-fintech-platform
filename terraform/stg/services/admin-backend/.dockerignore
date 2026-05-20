@@ -1,7 +1,0 @@
-﻿.gradle
-build
-!build/libs
-.idea
-*.iml
-.git
-

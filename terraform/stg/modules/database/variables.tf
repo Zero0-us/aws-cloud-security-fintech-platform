@@ -1,7 +1,7 @@
 # modules/database/variables.tf
 
 variable "env_name" {
-  description = "배포 환경 구분 (prod, dev 등)"
+  description = "배포 환경 구분 (stg, dev 등)"
   type        = string
 }
 
